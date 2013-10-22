@@ -30,7 +30,7 @@
     </servlet>
     <servlet-mapping>
         <servlet-name>ICEPush for Portlets</servlet-name>
-        <!-- url-pattern>/icepush/*</url-pattern -->
+        <!-- url-pattern>/icepush/*</url-pattern-->
         <url-pattern>/*</url-pattern>
     </servlet-mapping>
      
