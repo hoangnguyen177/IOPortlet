@@ -119,13 +119,13 @@ public class IoporletUI extends UI{
 			e1.printStackTrace();
 		}
 		
-//		liferayScreenName = "hoangnguyen";
+//		liferayScreenName = "test";
 //		host = "localhost";
 //		protocol = "http";
 //		timeout = 10;
 //		port = 9090;
 //		nsp = "/";
-//		sourceId = "Ih5MHeauAgyd1nfGAAAQ";
+//		sourceId = "SLU1-E5bKKE8VYP8AAAF";
 		
 		this.setupIpc();
 		if(sink==null)
@@ -294,17 +294,29 @@ public class IoporletUI extends UI{
 							}
 						}				
 						if(_createNewGui){
+							Outputable _output = null;
 							if(gui_element.equals("graph.line")){
-								Outputable _graph = new LineGraph();
-								_graph.setId(gui_id);
-								_graph.setCaption(caption);
-								_graph.setGuiType(gui_element);
-								_graph.setOutputDataType(out_datatype);
-								_graph.setUpdateMode(update_mode);
-								outputs.put(_outputPath, _graph);
-								_graph.addToLayout(layout);
-								pusher.push();
+								_output = new LineGraph();
+								_output.setId(gui_id);
 							}
+							else if(gui_element.equals("parallel.coordinates")){
+								if(gui_id.equals(""))
+									gui_id = gui_element;
+								_output = new ParallelCoordinate(gui_id);
+								statusLabel.setValue("Adding parallel coordinates id:" + gui_id);
+							}
+							else
+							{
+								statusLabel.setValue("gui_element not supported:" + gui_element);
+								return;
+							}
+							_output.setCaption(caption);
+							_output.setGuiType(gui_element);
+							_output.setOutputDataType(out_datatype);
+							_output.setUpdateMode(update_mode);
+							outputs.put(_outputPath, _output);
+							_output.addToLayout(layout);
+							pusher.push();
 						}
 					}
 					
