@@ -14,6 +14,7 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 //vaadin
 import com.vaadin.ui.AbstractLayout;
+import com.vaadin.ui.VerticalLayout;
 
 import edu.monash.io.iolibrary.ConfigurationConsts.DataType;
 import edu.monash.io.iolibrary.ConfigurationConsts.UpdateMode;
@@ -25,10 +26,10 @@ public class ParallelCoordinate  implements Outputable {
 	public ParallelCoordinate(String _id){
 		this.setId(_id);
 		parCoords = new ParCoords(this.id);
-		parCoords.setProperties("pcwidth", 800);
+		parCoords.setProperties("pcwidth", 1000);
 		parCoords.setProperties("pcheight", 600);
 		parCoords.setProperties("brushed", true);
-		parCoords.setWidth("800px");
+		parCoords.setWidth("1000px");
 		parCoords.setHeight("600px");
 	}
 
@@ -108,8 +109,10 @@ public class ParallelCoordinate  implements Outputable {
 
 	@Override
 	public void addToLayout(AbstractLayout layout) {
-		layout.addComponent(parCoords);
-		parCoords.setSizeFull();
+		VerticalLayout _layout = new VerticalLayout();
+		_layout.setHeight("700px");
+		_layout.addComponent(parCoords);
+		layout.addComponent(_layout);
 	}
 	
 	

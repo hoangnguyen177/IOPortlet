@@ -307,6 +307,7 @@ public class IoporletUI extends UI{
 							}
 							else
 							{
+								this.setHeight("700px");
 								statusLabel.setValue("gui_element not supported:" + gui_element);
 								return;
 							}

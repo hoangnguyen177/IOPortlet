@@ -7,8 +7,8 @@ edu_uq_workways_ioporlet_parcoords_ParCoords = function() {
 					.height(this.getState().pcHeight)
 					.shadows()
 					.autoscale()
-					.reorderable()
 					.mode("queue")
+					.reorderable()
 					;
     //first time paint
     var first = true;
@@ -30,13 +30,13 @@ edu_uq_workways_ioporlet_parcoords_ParCoords = function() {
 	  		parcoords.margin(this.getState().margin);
 	  	}
 	  	if(first== true){
-		  	parcoords.render().createAxes();
+		  	parcoords.createAxes().render();
 		  	if(this.getState().brushed==true)
 		  		parcoords.brushable();
 	  		first = false;
 	  	}
 	  	else
-		  	parcoords.render().updateAxes();
+		  	parcoords.updateAxes().render();
 	}
       
 };
