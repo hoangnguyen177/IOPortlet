@@ -143,6 +143,7 @@ public class IoporletUI extends UI{
 		    public void eventReceived(LiferayIPCEvent event) {
 		        String data = event.getData();
 		        if(data.equals("terminated")){
+		        	statusLabel.setValue("Terminate signal from Workflow portlet!");
 		        	if(sink!=null && sink.isConnected())
 						try {
 							sink.disconnect();
@@ -216,8 +217,13 @@ public class IoporletUI extends UI{
 				pusher.push();
 			}	
 			public void onSourceDisconnect(){
-				if(sink!=null && !sink.isConnected())
+				if(sink!=null && sink.isConnected()){
+					try {
+						sink.disconnect();
+						sink = null;
+					} catch (ConnectionFailException e) {e.printStackTrace();}
 					statusLabel.setValue("The source is disconnected!");
+				}
 			}
 			public void onSourceConnect(JsonObject sourceList){
 			}
