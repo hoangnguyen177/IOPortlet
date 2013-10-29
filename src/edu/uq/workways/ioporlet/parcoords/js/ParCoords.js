@@ -10,6 +10,12 @@ edu_uq_workways_ioporlet_parcoords_ParCoords = function() {
 					.mode("queue")
 					.brushable()
 					;
+    var self = this;
+    //when users select an area, it will set the brush data upto date with selected value from parcoords library 
+    parcoords.on("brush", function(data){
+    	self.setBrushValue(JSON.stringify(data));
+
+    });
     //first time paint
     var first = true;
 	this.onStateChange = function() {

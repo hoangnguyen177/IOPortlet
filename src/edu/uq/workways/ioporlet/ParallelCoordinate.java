@@ -1,9 +1,7 @@
 package edu.uq.workways.ioporlet;
 //java
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -155,10 +153,18 @@ public class ParallelCoordinate  implements Outputable {
 		System.out.println("adding data:" + _addedData);
 		parCoords.addData(_addedData);
 	}
+	
+	
+	/**
+	 * returns parallel coordinate object
+	 */
+	public ParCoords getParCoords(){
+		return parCoords;
+	}
 
 	
 	/******************************************************/
-	ParCoords 		parCoords 							= null;
+	private ParCoords 		parCoords 							= null;
 	//private variables
 	private UpdateMode 					updateMode 		= UpdateMode.APPEND; //does not make sense to overwrite here
 	private DataType					outputDataType	= DataType.STRING;

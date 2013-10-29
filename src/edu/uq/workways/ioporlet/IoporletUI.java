@@ -275,7 +275,7 @@ public class IoporletUI extends UI{
 					if(!_channelItemType.equals("INPUT") && !_channelItemType.equals("OUTPUT")) //INOUT is not used anymore
 						continue;
 					//OUTPUT and INPUT both have these
-					String _outputPath = _path + "." + _channelItemKey;
+					final String _outputPath = _path + "." + _channelItemKey;
 					String out_datatype = _channelItemAsObject.get("out_datatype").getAsString();
 					String out_data     = _channelItemAsObject.get("out_data").getAsString();
 					String gui_element	= _channelItemAsObject.get("guielement").getAsString();
@@ -286,7 +286,8 @@ public class IoporletUI extends UI{
 					String caption = "";
 					if(_channelItemAsObject.has("caption"))
 						caption = _channelItemAsObject.get("caption").getAsString();
-					if(_channelItemType.equals("OUTPUT")){
+					//if(_channelItemType.equals("OUTPUT")){
+					
 						boolean _createNewGui = true;
 						Collection<Outputable> outputables = outputs.values();
 						Iterator<Outputable> outputableIterator = outputables.iterator();
@@ -302,18 +303,41 @@ public class IoporletUI extends UI{
 						if(_createNewGui){
 							Outputable _output = null;
 							if(gui_element.equals("graph.line")){
-								_output = new LineGraph();
-								_output.setId(gui_id);
+								if(_channelItemType.equals("INPUT")){
+									statusLabel.setValue("INPUT graph.line not supported yet:" + gui_element);
+									return;
+								}
+								else {
+									_output = new LineGraph();
+									_output.setId(gui_id);
+								}
 							}
 							else if(gui_element.equals("parallel.coordinates")){
 								if(gui_id.equals(""))
 									gui_id = gui_element;
-								_output = new ParallelCoordinate(gui_id);
+								if(_channelItemType.equals("INPUT")){
+									_output = new ParallelCoordinate_Inputable(gui_id);
+									((ParallelCoordinate_Inputable)_output).addInputListener(new InputListener(){
+										@Override
+										public void onUserInput(JsonElement userInput){
+											//here depends on the input type: here ther userInputs are in JsonArray
+											//_outputPath
+											//datatype
+											//get actual data
+											//call sink to return data
+											
+										}
+										
+									});
+									
+								}									
+								else if(_channelItemType.equals("OUTPUT")){
+									_output = new ParallelCoordinate(gui_id);
+								}
 								statusLabel.setValue("Adding parallel coordinates id:" + gui_id);
 							}
 							else
 							{
-								this.setHeight("700px");
 								statusLabel.setValue("gui_element not supported:" + gui_element);
 								return;
 							}
@@ -325,7 +349,7 @@ public class IoporletUI extends UI{
 							_output.addToLayout(layout);
 							pusher.push();
 						}
-					}
+					//}
 					
 				}
 				

@@ -4,19 +4,34 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
 import com.vaadin.annotations.JavaScript;
 import com.vaadin.annotations.StyleSheet;
 import com.vaadin.ui.AbstractJavaScriptComponent;
+import com.vaadin.ui.JavaScriptFunction;
+/**
+ * parallel.coordinates
+ * OUTPUT
+ * @author hoangnguyen
+ *
+ */
 @JavaScript({"js/d3.v3.js", "js/d3.parcoords.js","js/ParCoords.js"})
 @StyleSheet("js/parcoords.css")
 public class ParCoords extends AbstractJavaScriptComponent{
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * constructors
+	 * @param _containerId
+	 */
 	public ParCoords(String _containerId){
 		getState().containerId = _containerId;
 		this.setStyleName("parcoords");		
 		getState().data = new ArrayList<Map<String, Object>>();
 		this.setId(_containerId);
+		this.addJavascriptFunctions();
 	}
 	
 	public ParCoords(String _containerId, List<Map<String, Object>> _data){
@@ -24,20 +39,66 @@ public class ParCoords extends AbstractJavaScriptComponent{
 		getState().data = _data;
 		this.setStyleName("parcoords");
 		this.setId(_containerId);
+		this.addJavascriptFunctions();
+	}
+
+	/**
+	 * add javascript functions called from javascripts
+	 */
+	private void addJavascriptFunctions(){
+		this.addFunction("setBrushValue", new JavaScriptFunction() {
+	        private static final long serialVersionUID = 1L;
+			@Override
+	        public void call(JSONArray arguments) throws JSONException {
+	        	setBrushedData(arguments);
+	        }			
+	    });
 	}
 	
-	public void setDimentions(String[] _dimentions){
+	/**
+	 * setBrushedData
+	 * @param _dat
+	 */
+	public void setBrushedData(JSONArray _dat){
+		getState().brushedData = _dat;
+	}
+	
+	/**
+	 * getBrushedData
+	 * @return
+	 */
+	public JSONArray getBrushedData(){
+		return getState().brushedData;
+	}
+	
+	/**
+	 * setDimension
+	 * @param _dimentions
+	 */
+	public void setDimension(String[] _dimentions){
 		getState().dimensions = _dimentions;
 	}
 	
+	/**
+	 * setDimensionTitles
+	 * @param _dimensionTitles
+	 */
 	public void setDimensionTitles(String[] _dimensionTitles){
 		getState().dimensionTitles = _dimensionTitles;
 	}
 	
+	/**
+	 * setTypes
+	 * @param _types
+	 */
 	public void setTypes(Map<String, String> _types){
 		getState().types = _types;
 	}
 	
+	/**
+	 * setMargin
+	 * @param _margin
+	 */
 	public void setMargin(Map<String, Integer> _margin){
 		getState().margin = _margin;
 	}
@@ -73,13 +134,20 @@ public class ParCoords extends AbstractJavaScriptComponent{
 	   
 	}
 	
+	/**
+	 * add data
+	 * @param _dat
+	 */
 	public void addData(Map<String, Object> _dat){
 		getState().data.add(_dat);
 	}
 	
+	/**
+	 * get state
+	 */
 	@Override
-	  protected ParCoordsState getState() {
-	    return (ParCoordsState) super.getState();
-	  }
+	protected ParCoordsState getState() {
+		return (ParCoordsState) super.getState();
+	}
 	
 }

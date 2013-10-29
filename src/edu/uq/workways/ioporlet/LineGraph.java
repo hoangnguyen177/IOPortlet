@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * graph.line
  * Line graph
  * can accept 9 series at a time, more than that, the new serie is not going to be dislayed
  * TODO: make it another level: the chart can be AbstractComponent
