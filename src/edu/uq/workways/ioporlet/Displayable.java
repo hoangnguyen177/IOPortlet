@@ -9,7 +9,7 @@ import com.vaadin.ui.AbstractLayout;
  * @author hoangnguyen
  *
  */
-public interface Outputable {
+public interface Displayable {
 	
 	/**
 	 * returns the number of data series
@@ -105,5 +105,8 @@ public interface Outputable {
 	 */
 	public void addToLayout(AbstractLayout layout);
 	
-	
+	/**
+	 * bring the update to the GUI, called by addData when update is true
+	 */
+	public void update() throws InvalidDataException;
 }

@@ -10,7 +10,7 @@ package edu.uq.workways.ioporlet;
  * @author hoangnguyen
  *
  */
-public interface Inputable extends Outputable{
+public interface Inputable extends Displayable{
 	/**
 	 * addInputListener
 	 * @param _listener

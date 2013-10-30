@@ -20,15 +20,19 @@ import edu.monash.io.iolibrary.exceptions.InvalidDataTypeException;
 //pc
 import edu.uq.workways.ioporlet.parcoords.ParCoords;
 
-public class ParallelCoordinate  implements Outputable {
+public class ParallelCoordinate  extends DisplayObject{
+	/**
+	 * constructor
+	 * @param _id
+	 */
 	public ParallelCoordinate(String _id){
 		this.setId(_id);
-		parCoords = new ParCoords(this.id);
-		parCoords.setProperties("pcwidth", 1000);
-		parCoords.setProperties("pcheight", 600);
-		parCoords.setProperties("brushed", true);
-		parCoords.setWidth("1000px");
-		parCoords.setHeight("600px");
+		component = new ParCoords(this.id);
+		((ParCoords)component).setProperties("pcwidth", 1000);
+		((ParCoords)component).setProperties("pcheight", 600);
+		((ParCoords)component).setProperties("brushed", true);
+		((ParCoords)component).setWidth("1000px");
+		((ParCoords)component).setHeight("600px");
 	}
 
 	@Override
@@ -37,79 +41,15 @@ public class ParallelCoordinate  implements Outputable {
 	}
 
 	@Override
-	public void setOutputDataType(String out_datatype) {
-		try {
-			outputDataType = DataType.fromString(out_datatype);
-		} catch (InvalidDataTypeException e) {
-		}
-	}
-
-	@Override
-	public void setId(String _id) {
-		id = _id;
-	}
-
-	@Override
-	public String getId() {
-		return id;
-	}
-
-	@Override
-	public void setCaption(String _caption) {
-		caption = _caption;
-	}
-
-	@Override
-	public String getCaption() {
-		return caption;
-	}
-
-	@Override
-	public String getOutputDataType() {
-		return outputDataType.toString();
-	}
-
-	@Override
-	public void setUpdateMode(String update_mode) {
-		try {
-			updateMode = UpdateMode.fromString(update_mode);
-		} catch (InvalidDataTypeException e) {
-		}
-	}
-
-	@Override
-	public String getUpdateMode() {
-		return updateMode.toString();
-	}
-
-
-	@Override
 	public Set<String> getDataSeriesIds() {
 		return null;
-	}
-
-	@Override
-	public void setGuiType(String _guiElement) {
-		guiType = _guiElement;
-	}
-
-	@Override
-	public String getGuiType() {
-		return guiType;
-	}
-
-	@Override
-	public boolean isEqual(String _otherId, String _otherGuiType,
-			String _outputDataType, String _updateMode) {
-		return id.equals(_otherId)&& guiType.equals(_otherGuiType)&& 
-				outputDataType.toString().equals(_outputDataType)&& updateMode.toString().equals(_updateMode);
 	}
 
 	@Override
 	public void addToLayout(AbstractLayout layout) {
 		VerticalLayout _layout = new VerticalLayout();
 		_layout.setHeight("700px");
-		_layout.addComponent(parCoords);
+		_layout.addComponent(component);
 		layout.addComponent(_layout);
 	}
 	
@@ -151,25 +91,13 @@ public class ParallelCoordinate  implements Outputable {
 				throw new InvalidDataException("Parallel Coordinates currently only accepts one level Json object");
 		}
 		System.out.println("adding data:" + _addedData);
-		parCoords.addData(_addedData);
+		((ParCoords)component).addData(_addedData);
 	}
 	
-	
-	/**
-	 * returns parallel coordinate object
-	 */
-	public ParCoords getParCoords(){
-		return parCoords;
+	//not needed, update ParCoords in every addition
+	@Override
+	public void update() throws InvalidDataException{
+		
 	}
-
 	
-	/******************************************************/
-	private ParCoords 		parCoords 							= null;
-	//private variables
-	private UpdateMode 					updateMode 		= UpdateMode.APPEND; //does not make sense to overwrite here
-	private DataType					outputDataType	= DataType.STRING;
-	private String 							id			="";
-	private String							caption		="";
-	private String							guiType		="";
-
 }

@@ -77,7 +77,7 @@ public class IoporletUI extends UI{
 	private String						nsp							= "/";
 	private String						sourceId					= "";
 	
-	private Map<String, Outputable>		outputs						= new HashMap<String, Outputable>();
+	private Map<String, Displayable>		outputs						= new HashMap<String, Displayable>();
 	
 	/********************************************************/
 	@Override
@@ -289,10 +289,10 @@ public class IoporletUI extends UI{
 					//if(_channelItemType.equals("OUTPUT")){
 					
 						boolean _createNewGui = true;
-						Collection<Outputable> outputables = outputs.values();
-						Iterator<Outputable> outputableIterator = outputables.iterator();
+						Collection<Displayable> outputables = outputs.values();
+						Iterator<Displayable> outputableIterator = outputables.iterator();
 						while(outputableIterator.hasNext()){
-							Outputable _anOutput = outputableIterator.next();
+							Displayable _anOutput = outputableIterator.next();
 							//do not need to  create another gui element
 							if(_anOutput.isEqual(gui_id, gui_element, out_datatype, update_mode)){
 								outputs.put(_outputPath, _anOutput);
@@ -301,7 +301,10 @@ public class IoporletUI extends UI{
 							}
 						}				
 						if(_createNewGui){
-							Outputable _output = null;
+							if(gui_id.equals(""))
+								gui_id = gui_element;
+							Displayable _output = null;
+							//////////graph line
 							if(gui_element.equals("graph.line")){
 								if(_channelItemType.equals("INPUT")){
 									statusLabel.setValue("INPUT graph.line not supported yet:" + gui_element);
@@ -312,9 +315,8 @@ public class IoporletUI extends UI{
 									_output.setId(gui_id);
 								}
 							}
+							//////////parallel coordinates
 							else if(gui_element.equals("parallel.coordinates")){
-								if(gui_id.equals(""))
-									gui_id = gui_element;
 								if(_channelItemType.equals("INPUT")){
 									_output = new ParallelCoordinate_Inputable(gui_id);
 									((ParallelCoordinate_Inputable)_output).addInputListener(new InputListener(){
@@ -330,12 +332,48 @@ public class IoporletUI extends UI{
 										
 									});
 									
-								}									
+								}
 								else if(_channelItemType.equals("OUTPUT")){
 									_output = new ParallelCoordinate(gui_id);
 								}
 								statusLabel.setValue("Adding parallel coordinates id:" + gui_id);
 							}
+							//////////text area
+							else if(gui_element.equals("gui.textarea")){
+								if(_channelItemType.equals("INPUT")){
+									_output = new TextArea_Inputable(gui_id);
+									((TextArea_Inputable)_output).addInputListener(new InputListener(){
+										@Override
+										public void onUserInput(JsonElement userInput){
+											//this JsonElement is always string, but it will be parsed according to the type of data declared
+											String _input = userInput.getAsString();
+											
+										}										
+									});									
+								}
+								else if(_channelItemType.equals("OUTPUT")){
+									_output = new TextArea(gui_id);
+								}
+								statusLabel.setValue("Adding textarea:" + gui_id);
+							}
+							//////////text field
+							else if(gui_element.equals("gui.textfield")){
+								if(_channelItemType.equals("INPUT")){
+									_output = new TextField_Inputable(gui_id);
+									((TextField_Inputable)_output).addInputListener(new InputListener(){
+										@Override
+										public void onUserInput(JsonElement userInput){
+											String _input = userInput.getAsString();
+											
+										}										
+									});									
+								}
+								else if(_channelItemType.equals("OUTPUT")){
+									_output = new TextField(gui_id);
+								}
+								statusLabel.setValue("Adding textfield:" + gui_id);
+							}
+														
 							else
 							{
 								statusLabel.setValue("gui_element not supported:" + gui_element);

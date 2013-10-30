@@ -8,17 +8,19 @@ import org.dussan.vaadin.dcharts.data.DataSeries;
 import org.dussan.vaadin.dcharts.metadata.TooltipAxes;
 import org.dussan.vaadin.dcharts.metadata.locations.TooltipLocations;
 import org.dussan.vaadin.dcharts.metadata.styles.MarkerStyles;
-
 import org.dussan.vaadin.dcharts.options.Highlighter;
 import org.dussan.vaadin.dcharts.options.Options;
 import org.dussan.vaadin.dcharts.options.Series;
+
 import com.vaadin.ui.AbstractLayout;
+
 
 //io stuff
 import edu.monash.io.iolibrary.ConfigurationConsts;
 import edu.monash.io.iolibrary.ConfigurationConsts.DataType;
 import edu.monash.io.iolibrary.ConfigurationConsts.UpdateMode;
 import edu.monash.io.iolibrary.exceptions.InvalidDataTypeException;
+
 
 
 
@@ -36,35 +38,17 @@ import java.util.List;
  * graph.line
  * Line graph
  * can accept 9 series at a time, more than that, the new serie is not going to be dislayed
- * TODO: make it another level: the chart can be AbstractComponent
  * @author hoangnguyen
  *
  */
-public class LineGraph implements Outputable{
+public class LineGraph extends DisplayObject{
 
 	/**
 	 * constructor: create a normal LineGraph
 	 */
 	public LineGraph(){
-		chart = new DCharts();
-		chart.show();
-	}
-	
-	
-	@Override
-	public void setOutputDataType(String out_datatype) {
-		try {
-			outputDataType = DataType.fromString(out_datatype);
-		} catch (InvalidDataTypeException e) {}
-	}
-
-	@Override
-	public void setUpdateMode(String update_mode) {
-		try {
-			updateMode = UpdateMode.fromString(update_mode);
-		} catch (InvalidDataTypeException e) {
-			e.printStackTrace();
-		}
+		component = new DCharts();
+		((DCharts)component).show();
 	}
 	
 	
@@ -95,38 +79,15 @@ public class LineGraph implements Outputable{
 			data.put(serieId, _newDataList);
 		}//end else		
 		if(update)
-			updateGraph();
+			update();
 	}
 	
-	
-	@Override
-	public int getNumberOfSeries() {
-		return this.getDataSeriesIds().size();
-	}
-
-
-	@Override
-	public String getOutputDataType() {
-		return outputDataType.toString();
-	}
-
-
-	@Override
-	public String getUpdateMode() {
-		return updateMode.toString();
-	}
-
-
-	@Override
-	public Set<String> getDataSeriesIds() {
-		return data.keySet();
-	}
 	
 	/**
 	 * update graph
 	 * @throws Exception 
 	 */
-	private void updateGraph() throws InvalidDataException{
+	public void update() throws InvalidDataException{
 		DataSeries dataSeries = new DataSeries();
 		Series series = new Series();
 		MarkerStyles[] styles = MarkerStyles.values();
@@ -163,78 +124,27 @@ public class LineGraph implements Outputable{
 					);
 		}//end for
 		Options options = new Options().setSeries(series);
-		chart.setOptions(options).setDataSeries(dataSeries).markAsDirty();
-		chart.show();
-	}
-	
-	
-	
-	@Override
-	public void addToLayout(AbstractLayout _layout) {
-		_layout.addComponent(chart);
+		((DCharts)component).setOptions(options).setDataSeries(dataSeries).markAsDirty();
+		((DCharts)component).show();
 	}
 	
 	
 	@Override
-	public void setId(String _id) {
-		id = _id;
+	public int getNumberOfSeries() {
+		return this.getDataSeriesIds().size();
 	}
 
 
 	@Override
-	public String getId() {
-		return id;
-	}
-
-
-	@Override
-	public void setCaption(String _caption) {
-		caption = _caption;
-		chart.setCaption(caption);
-	}
-
-
-	@Override
-	public String getCaption() {
-		return caption;
-	}
-
-
-	@Override
-	public void setGuiType(String _guiElement) {
-		guiType = _guiElement;
-	}
-
-
-	@Override
-	public boolean isEqual(String _otherId, String _otherGuiType,
-			String _outputDataType, String _updateMode) {
-		return id.equals(_otherId)&& guiType.equals(_otherGuiType)&& 
-				outputDataType.toString().equals(_outputDataType)&& updateMode.toString().equals(_updateMode);
-	}
-
-
-	@Override
-	public String getGuiType() {
-		return guiType;
+	public Set<String> getDataSeriesIds() {
+		return data.keySet();
 	}
 	
-	
+		
 	/******************************************************/
-	//dchart stuff
-	private DCharts 		chart 			= null;
 	//private variables
-	private UpdateMode 					updateMode 		= UpdateMode.OVERWRITE;
-	private DataType					outputDataType	= DataType.STRING;
 	private Map<String, List<String>>			data	= new HashMap<String, List<String>>();
 	private List<String>					seriesOrder	= new ArrayList<String>(MarkerStyles.values().length);
-	private String 							id			="";
-	private String							caption		="";
-	private String							guiType		="";
-	
-	
-	
-	
 	
 	
 	
