@@ -19,6 +19,8 @@ import com.vaadin.ui.Button.ClickEvent;
 public class TextArea_Inputable extends TextArea implements Inputable{
 	/*************************************************************/
 	private List<InputListener> listeners = new LinkedList<InputListener>();
+	private boolean belongToGroup = false;
+	private String groupName = "";
 	/*************************************************************/
 	
 	public TextArea_Inputable(String _id) {
@@ -34,19 +36,39 @@ public class TextArea_Inputable extends TextArea implements Inputable{
 	@Override
 	public void addToLayout(AbstractLayout layout){
 		super.addToLayout(layout);
-		Button submitButton = new Button("Submit");
-		submitButton.addClickListener(new Button.ClickListener(){
-			@Override
-			public void buttonClick(ClickEvent event) {
-				if(component ==null || ((com.vaadin.ui.TextArea)component).getValue().isEmpty())
-					return;
-				JsonElement _inputsInGson = new JsonPrimitive(((com.vaadin.ui.TextField)component).getValue());
-				for(InputListener _listener: listeners){
-					_listener.onUserInput(_inputsInGson);
-				}
-			}			
-		});
-		layout.addComponent(submitButton);
+		if(!belongToGroup){
+			Button submitButton = new Button("Submit");
+			submitButton.addClickListener(new Button.ClickListener(){
+				@Override
+				public void buttonClick(ClickEvent event) {
+					JsonElement _inputsInGson = getUserInput();
+					if(_inputsInGson ==null)
+						return;
+					for(InputListener _listener: listeners){
+						_listener.onUserInput(_inputsInGson);
+					}
+				}			
+			});
+			layout.addComponent(submitButton);
+		}
+	}
+
+
+	@Override
+	public void addToGroup(String groupname) {
+		String _groupname = groupname.trim();
+		if(_groupname.isEmpty())
+			return;
+		groupName = _groupname;
+		belongToGroup = true;
+	}
+
+
+	@Override
+	public JsonElement getUserInput() {
+		if(component ==null || ((com.vaadin.ui.TextArea)component).getValue().isEmpty())
+			return null;
+		return new JsonPrimitive(((com.vaadin.ui.TextField)component).getValue());
 	}
 
 }

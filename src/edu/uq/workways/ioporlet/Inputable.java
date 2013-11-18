@@ -1,4 +1,7 @@
 package edu.uq.workways.ioporlet;
+
+import com.google.gson.JsonElement;
+
 /**
  * Inputable type of GUI that can take user inputs and transfer back to the user
  * There are two ways here: 
@@ -16,4 +19,15 @@ public interface Inputable extends Displayable{
 	 * @param _listener
 	 */
 	public void addInputListener(InputListener _listener);
+	/**
+	 * add this Inputable to a group
+	 * @param groupname
+	 */
+	public void addToGroup(String groupname);
+	
+	/**
+	 * get user inputs
+	 * @return
+	 */
+	public JsonElement getUserInput();
 }
