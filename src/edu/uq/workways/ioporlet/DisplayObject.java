@@ -16,7 +16,6 @@ public abstract class DisplayObject implements Displayable{
 	protected AbstractComponent 			component		= null;
 	//private variables
 	protected UpdateMode 					updateMode 		= UpdateMode.APPEND; 
-	protected DataType						outputDataType	= DataType.STRING;
 	protected String 							id			="";
 	protected String							caption		="";
 	protected String							guiType		="";
@@ -27,13 +26,6 @@ public abstract class DisplayObject implements Displayable{
 	}
 	
 	@Override
-	public void setOutputDataType(String out_datatype) {
-		try {
-			outputDataType = DataType.fromString(out_datatype);
-		} catch (InvalidDataTypeException e) {}
-	}
-
-	@Override
 	public void setUpdateMode(String update_mode) {
 		try {
 			updateMode = UpdateMode.fromString(update_mode);
@@ -42,12 +34,6 @@ public abstract class DisplayObject implements Displayable{
 		}
 	}
 	
-
-	@Override
-	public String getOutputDataType() {
-		return outputDataType.toString();
-	}
-
 
 	@Override
 	public String getUpdateMode() {
@@ -87,10 +73,8 @@ public abstract class DisplayObject implements Displayable{
 
 
 	@Override
-	public boolean isEqual(String _otherId, String _otherGuiType,
-			String _outputDataType, String _updateMode) {
-		return id.equals(_otherId)&& guiType.equals(_otherGuiType)&& 
-				outputDataType.toString().equals(_outputDataType)&& updateMode.toString().equals(_updateMode);
+	public boolean isEqual(String _otherId, String _otherGuiType, String _updateMode) {
+		return id.equals(_otherId)&& guiType.equals(_otherGuiType)&& updateMode.toString().equals(_updateMode);
 	}
 
 

@@ -12,8 +12,10 @@ import javax.servlet.annotation.WebServlet;
 
 
 
+
 //icepush
 import org.vaadin.artur.icepush.ICEPush;
+
 
 
 //vaadin
@@ -37,6 +39,8 @@ import com.liferay.portal.util.PortletKeys;
 
 
 
+
+import edu.monash.io.iolibrary.ConfigurationConsts.DataType;
 //socket io
 import edu.monash.io.socketio.connection.SinkConnection;
 import edu.monash.io.socketio.connection.SinkListener;
@@ -278,20 +282,18 @@ public class IoporletUI extends UI{
 						continue;
 					//OUTPUT and INPUT both have these
 					final String _outputPath = _path + "." + _channelItemKey;
-					String out_datatype = _channelItemAsObject.get("out_datatype").getAsString();
 					String out_data     = _channelItemAsObject.get("out_data").getAsString();
 					String gui_element	= _channelItemAsObject.get("guielement").getAsString();
 					String update_mode	= _channelItemAsObject.get("update_mode").getAsString();
 					String gui_id = "";
-					//grouping
-					boolean belongToGroup = false; 
-					String groupName = "";
-					
 					if(_channelItemAsObject.has("gui_id"))
 						gui_id = _channelItemAsObject.get("gui_id").getAsString();
 					String caption = "";
 					if(_channelItemAsObject.has("caption"))
 						caption = _channelItemAsObject.get("caption").getAsString();
+					//grouping
+					boolean belongToGroup = false; 
+					String groupName = "";
 					if(_channelItemAsObject.has("group")){
 						groupName = _channelItemAsObject.get("group").getAsString().trim();
 						if(!groupName.isEmpty())
@@ -305,7 +307,7 @@ public class IoporletUI extends UI{
 						while(outputableIterator.hasNext()){
 							Displayable _anOutput = outputableIterator.next();
 							//do not need to  create another gui element
-							if(_anOutput.isEqual(gui_id, gui_element, out_datatype, update_mode)){
+							if(_anOutput.isEqual(gui_id, gui_element, update_mode)){
 								outputs.put(_outputPath, _anOutput);
 								_createNewGui = false;
 								break;
@@ -326,18 +328,39 @@ public class IoporletUI extends UI{
 									_output.setId(gui_id);
 								}
 							}
+							/////////////graph bar
+							else if(gui_element.equals("graph.bar")){
+								statusLabel.setValue("graph.bar not supported:" + gui_element);
+								return;
+							}							
+							////////////graph pie
+							else if(gui_element.equals("graph.pie")){
+								statusLabel.setValue("graph.pie not supported:" + gui_element);
+								return;
+							}
 							//////////parallel coordinates
 							else if(gui_element.equals("parallel.coordinates")){
 								if(_channelItemType.equals("INPUT")){
+									//inputaction: later on. Now only points selection
+//									String _inputaction = "";
+//									if(_channelItemAsObject.has("inputaction"))
+//										_inputaction = _channelItemAsObject.get("inputaction").getAsString();
 									_output = new ParallelCoordinate_Inputable(gui_id);
 									((ParallelCoordinate_Inputable)_output).addInputListener(new InputListener(){
 										@Override
 										public void onUserInput(JsonElement userInput){
-											//here depends on the input type: here ther userInputs are in JsonArray
-											//_outputPath
-											//datatype
-											//get actual data
-											//call sink to return data
+											//this userInput is an JsonArray
+											String _input = userInput.toString();
+											JsonObject _returnMessage = new JsonObject();
+											_returnMessage.addProperty("messagetype", ConnectionConsts.CLIENT_C_MESSAGE);
+											_returnMessage.addProperty("path" , _outputPath);	
+											_returnMessage.addProperty("datatype" , DataType.STRING.toString());
+											_returnMessage.addProperty("data" , _input);
+											try {
+												sink.send(_returnMessage);
+											} 
+											catch (ConnectionFailException e) {} 
+											catch (UnauthcatedClientException e) {}	
 											
 										}
 										
@@ -349,6 +372,7 @@ public class IoporletUI extends UI{
 								}
 								statusLabel.setValue("Adding parallel coordinates id:" + gui_id);
 							}
+							
 							//////////text area
 							else if(gui_element.equals("gui.textarea")){
 								if(_channelItemType.equals("INPUT")){
@@ -356,9 +380,17 @@ public class IoporletUI extends UI{
 									((TextArea_Inputable)_output).addInputListener(new InputListener(){
 										@Override
 										public void onUserInput(JsonElement userInput){
-											//this JsonElement is always string, but it will be parsed according to the type of data declared
 											String _input = userInput.getAsString();
-											
+											JsonObject _returnMessage = new JsonObject();
+											_returnMessage.addProperty("messagetype", ConnectionConsts.CLIENT_C_MESSAGE);
+											_returnMessage.addProperty("path" , _outputPath);	
+											_returnMessage.addProperty("datatype" , DataType.STRING.toString());
+											_returnMessage.addProperty("data" , _input);
+											try {
+												sink.send(_returnMessage);
+											} 
+											catch (ConnectionFailException e) {} 
+											catch (UnauthcatedClientException e) {}	
 										}										
 									});									
 								}
@@ -375,7 +407,16 @@ public class IoporletUI extends UI{
 										@Override
 										public void onUserInput(JsonElement userInput){
 											String _input = userInput.getAsString();
-											
+											JsonObject _returnMessage = new JsonObject();
+											_returnMessage.addProperty("messagetype", ConnectionConsts.CLIENT_C_MESSAGE);
+											_returnMessage.addProperty("path" , _outputPath);	
+											_returnMessage.addProperty("datatype" , DataType.STRING.toString());
+											_returnMessage.addProperty("data" , _input);
+											try {
+												sink.send(_returnMessage);
+											} 
+											catch (ConnectionFailException e) {} 
+											catch (UnauthcatedClientException e) {}	
 										}										
 									});									
 								}
@@ -384,7 +425,26 @@ public class IoporletUI extends UI{
 								}
 								statusLabel.setValue("Adding textfield:" + gui_id);
 							}
-														
+							///// int input
+							else if(gui_element.equals("gui.intinput")){
+								statusLabel.setValue("gui.intinput not supported:" + gui_element);
+								return;
+							}
+							///// double input
+							else if(gui_element.equals("gui.doubleinput")){
+								statusLabel.setValue("gui.doubleinput not supported:" + gui_element);
+								return;
+							}							
+							///// boolean input
+							else if(gui_element.equals("gui.booleaninput")){
+								statusLabel.setValue("gui.booleaninput not supported:" + gui_element);
+								return;
+							}							
+							///// selection
+							else if(gui_element.equals("gui.selection")){
+								statusLabel.setValue("gui.selection not supported:" + gui_element);
+								return;
+							}														
 							else
 							{
 								statusLabel.setValue("gui_element not supported:" + gui_element);
@@ -392,7 +452,6 @@ public class IoporletUI extends UI{
 							}
 							_output.setCaption(caption);
 							_output.setGuiType(gui_element);
-							_output.setOutputDataType(out_datatype);
 							_output.setUpdateMode(update_mode);
 							outputs.put(_outputPath, _output);
 							if(belongToGroup){

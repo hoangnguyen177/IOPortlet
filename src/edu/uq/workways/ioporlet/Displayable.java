@@ -17,12 +17,6 @@ public interface Displayable {
 	 */
 	public int getNumberOfSeries();
 	
-	/**
-	 * set output data type
-	 * default = string
-	 * @param out_datatype
-	 */
-	public void setOutputDataType(String out_datatype);
 	
 	/**
 	 * set unique name for this outputable
@@ -47,10 +41,6 @@ public interface Displayable {
 	 */
 	public String getCaption();
 	
-	/**
-	 * @return
-	 */
-	public String getOutputDataType();
 	/**
 	 * set update mode
 	 * default = overwrite
@@ -97,7 +87,7 @@ public interface Displayable {
 	 * @param _otherType
 	 * @return
 	 */
-	public boolean isEqual(String _otherId, String _otherGuiType, String _outputDataType, String _updateMode);
+	public boolean isEqual(String _otherId, String _otherGuiType, String _updateMode);
 	
 	/**
 	 * add to layout
