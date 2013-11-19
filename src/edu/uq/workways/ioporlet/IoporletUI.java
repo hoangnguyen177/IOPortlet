@@ -77,7 +77,9 @@ public class IoporletUI extends UI{
 	private String						nsp							= "/";
 	private String						sourceId					= "";
 	
-	private Map<String, Displayable>		outputs						= new HashMap<String, Displayable>();
+	private Map<String, Displayable>		outputs					= new HashMap<String, Displayable>();
+	//groups of inputtables
+	private Map<String, DisplayableGroup>	displayablesGroup		= new HashMap<String, DisplayableGroup>();	
 	
 	/********************************************************/
 	@Override
@@ -281,11 +283,20 @@ public class IoporletUI extends UI{
 					String gui_element	= _channelItemAsObject.get("guielement").getAsString();
 					String update_mode	= _channelItemAsObject.get("update_mode").getAsString();
 					String gui_id = "";
+					//grouping
+					boolean belongToGroup = false; 
+					String groupName = "";
+					
 					if(_channelItemAsObject.has("gui_id"))
 						gui_id = _channelItemAsObject.get("gui_id").getAsString();
 					String caption = "";
 					if(_channelItemAsObject.has("caption"))
 						caption = _channelItemAsObject.get("caption").getAsString();
+					if(_channelItemAsObject.has("group")){
+						groupName = _channelItemAsObject.get("group").getAsString().trim();
+						if(!groupName.isEmpty())
+							belongToGroup = true;						
+					}
 					//if(_channelItemType.equals("OUTPUT")){
 					
 						boolean _createNewGui = true;
@@ -384,7 +395,18 @@ public class IoporletUI extends UI{
 							_output.setOutputDataType(out_datatype);
 							_output.setUpdateMode(update_mode);
 							outputs.put(_outputPath, _output);
-							_output.addToLayout(layout);
+							if(belongToGroup){
+								if(displayablesGroup.containsKey(groupName))
+									displayablesGroup.get(groupName).addDisplayable(_output);
+								else{
+									DisplayableGroup _displayGrp = new DisplayableGroup(groupName);
+									_displayGrp.addDisplayable(_output);
+									_displayGrp.addToLayout(layout);
+									displayablesGroup.put(groupName, _displayGrp);
+								}									
+							}
+							else
+								_output.addToLayout(layout);
 							pusher.push();
 						}
 					//}

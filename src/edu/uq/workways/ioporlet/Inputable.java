@@ -1,5 +1,7 @@
 package edu.uq.workways.ioporlet;
 
+import java.util.List;
+
 import com.google.gson.JsonElement;
 
 /**
@@ -19,6 +21,13 @@ public interface Inputable extends Displayable{
 	 * @param _listener
 	 */
 	public void addInputListener(InputListener _listener);
+	
+	/**
+	 * get the listeners
+	 * @return
+	 */
+	public List<InputListener> getInputListeners();
+	
 	/**
 	 * add this Inputable to a group
 	 * @param groupname

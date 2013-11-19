@@ -5,6 +5,7 @@ import java.util.List;
 
 
 
+
 //gson
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
@@ -73,6 +74,11 @@ public class TextField_Inputable extends TextField implements Inputable{
 		if(component ==null || ((com.vaadin.ui.TextField)component).getValue().isEmpty())
 			return null;
 		return new JsonPrimitive(((com.vaadin.ui.TextField)component).getValue());
+	}
+	
+	@Override
+	public List<InputListener> getInputListeners() {
+		return listeners;
 	}
 
 }

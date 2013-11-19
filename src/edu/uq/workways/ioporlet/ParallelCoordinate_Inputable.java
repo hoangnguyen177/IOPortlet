@@ -92,6 +92,11 @@ public class ParallelCoordinate_Inputable extends ParallelCoordinate implements 
 		JsonParser parser = new JsonParser();
 		return parser.parse(_inputs.toString());
 	}
+
+	@Override
+	public List<InputListener> getInputListeners() {
+		return listeners;
+	}
 	
 	
 

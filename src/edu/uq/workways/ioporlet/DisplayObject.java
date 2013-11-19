@@ -16,7 +16,7 @@ public abstract class DisplayObject implements Displayable{
 	protected AbstractComponent 			component		= null;
 	//private variables
 	protected UpdateMode 					updateMode 		= UpdateMode.APPEND; 
-	protected DataType					outputDataType	= DataType.STRING;
+	protected DataType						outputDataType	= DataType.STRING;
 	protected String 							id			="";
 	protected String							caption		="";
 	protected String							guiType		="";

@@ -70,5 +70,10 @@ public class TextArea_Inputable extends TextArea implements Inputable{
 			return null;
 		return new JsonPrimitive(((com.vaadin.ui.TextField)component).getValue());
 	}
+	
+	@Override
+	public List<InputListener> getInputListeners() {
+		return listeners;
+	}
 
 }
