@@ -425,6 +425,61 @@ public class IoporletUI extends UI{
 								}
 								statusLabel.setValue("Adding textfield:" + gui_id);
 							}
+							///// boolean input
+							else if(gui_element.equals("gui.booleaninput")){
+								if(_channelItemType.equals("INPUT")){
+									_output = new BooleanInput_Inputable(gui_id);
+									((BooleanInput_Inputable)_output).addInputListener(new InputListener(){
+										@Override
+										public void onUserInput(JsonElement userInput){
+											String _input = userInput.getAsString();
+											JsonObject _returnMessage = new JsonObject();
+											_returnMessage.addProperty("messagetype", ConnectionConsts.CLIENT_C_MESSAGE);
+											_returnMessage.addProperty("path" , _outputPath);	
+											_returnMessage.addProperty("datatype" , DataType.BOOL.toString());
+											_returnMessage.addProperty("data" , _input);
+											try {
+												sink.send(_returnMessage);
+											} 
+											catch (ConnectionFailException e) {} 
+											catch (UnauthcatedClientException e) {}	
+										}										
+									});				
+								}
+								else if(_channelItemType.equals("OUTPUT")){
+									statusLabel.setValue("gui.booleaninput does not have OUTPUT option");
+									return;
+								}
+								statusLabel.setValue("Adding boolean input:" + gui_id);
+							}							
+							
+							///// image
+							else if(gui_element.equals("gui.image")){
+								if(_channelItemType.equals("INPUT")){
+									statusLabel.setValue("gui.image does not have INPUT option");
+									return;
+								}
+								else if(_channelItemType.equals("OUTPUT")){
+									_output = new Image(gui_id);
+								}
+								statusLabel.setValue("Adding boolean input:" + gui_id);
+								
+							}
+							
+							////// image slide
+							else if(gui_element.equals("gui.imageslide")){
+								if(_channelItemType.equals("INPUT")){
+									statusLabel.setValue("gui.image does not have INPUT option yet");
+									return;
+								}
+								else if(_channelItemType.equals("OUTPUT")){
+									_output = new ImageSlide(gui_id);
+								}
+								statusLabel.setValue("Adding boolean input:" + gui_id);
+								
+							}
+							
+							
 							///// int input
 							else if(gui_element.equals("gui.intinput")){
 								statusLabel.setValue("gui.intinput not supported:" + gui_element);
@@ -435,16 +490,13 @@ public class IoporletUI extends UI{
 								statusLabel.setValue("gui.doubleinput not supported:" + gui_element);
 								return;
 							}							
-							///// boolean input
-							else if(gui_element.equals("gui.booleaninput")){
-								statusLabel.setValue("gui.booleaninput not supported:" + gui_element);
-								return;
-							}							
 							///// selection
 							else if(gui_element.equals("gui.selection")){
 								statusLabel.setValue("gui.selection not supported:" + gui_element);
 								return;
-							}														
+							}		
+							
+							
 							else
 							{
 								statusLabel.setValue("gui_element not supported:" + gui_element);
