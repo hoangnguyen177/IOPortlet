@@ -27,4 +27,6 @@
     <inherits name="org.vaadin.artur.icepush.IcepushaddonWidgetset" />
 
     <inherits name="org.dussan.vaadin.dcharts.DchartsWidgetset" />
+
+    <inherits name="org.vaadin.tepi.imageviewer.widgetset.ImageViewerWidgetset" />
 </module>

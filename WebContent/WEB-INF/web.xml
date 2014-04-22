@@ -8,7 +8,7 @@
 		<param-value>false</param-value>
 	</context-param>
 	<servlet>
-		<servlet-name>Ioporlet Application</servlet-name>
+		<servlet-name>IoporletApplication</servlet-name>
 		<servlet-class>com.vaadin.server.VaadinServlet</servlet-class>
 		<init-param>
 			<description>
@@ -24,25 +24,25 @@
 	
 	
 	<servlet>
-        <servlet-name>ICEPush for Portlets</servlet-name>
+        <servlet-name>ICEPushPortlets</servlet-name>
         <servlet-class>org.vaadin.artur.icepush.ICEPushServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
     <servlet-mapping>
-        <servlet-name>ICEPush for Portlets</servlet-name>
-        <!-- url-pattern>/icepush/*</url-pattern-->
-        <url-pattern>/*</url-pattern>
+        <servlet-name>ICEPushPortlets</servlet-name>
+        <url-pattern>/icepush/*</url-pattern>
+        <!-- url-pattern>/*</url-pattern -->
     </servlet-mapping>
      
      
      
      
 	<servlet-mapping>
-		<servlet-name>Ioporlet Application</servlet-name>
+		<servlet-name>IoporletApplication</servlet-name>
 		<url-pattern>/IoporletUIServlet/*</url-pattern>
 	</servlet-mapping>
 	<servlet-mapping>
-		<servlet-name>Ioporlet Application</servlet-name>
+		<servlet-name>IoporletApplication</servlet-name>
 		<url-pattern>/VAADIN/*</url-pattern>
 	</servlet-mapping>
 	<welcome-file-list>

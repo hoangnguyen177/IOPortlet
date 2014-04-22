@@ -12,10 +12,8 @@ import javax.servlet.annotation.WebServlet;
 
 
 
-
 //icepush
 import org.vaadin.artur.icepush.ICEPush;
-
 
 
 //vaadin
@@ -27,15 +25,17 @@ import com.vaadin.annotations.Widgetset;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.*;
+import com.vaadin.ui.Notification.Type;
 //gson
 import com.google.gson.JsonObject;
 import com.google.gson.JsonElement;
-import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.service.PortletPreferencesLocalServiceUtil;
 import com.liferay.portal.theme.PortletDisplay;
 import com.liferay.portal.theme.ThemeDisplay;
 import com.liferay.portal.util.PortletKeys;
+
+
 
 
 
@@ -49,9 +49,11 @@ import edu.monash.io.socketio.exceptions.ConnectionFailException;
 import edu.monash.io.socketio.exceptions.InvalidMessageException;
 import edu.monash.io.socketio.exceptions.InvalidSourceException;
 import edu.monash.io.socketio.exceptions.UnauthcatedClientException;
+import edu.uq.workways.commons.utils.PropsUtil;
 /**
  * class IoportletUI
  * @author hoangnguyen
+ * https://github.com/hoangnguyen177/IOPortlet/wiki
  */
 @PreserveOnRefresh
 @Widgetset("edu.uq.workways.ioporlet.widgetset.IoporletWidgetset")
@@ -73,6 +75,12 @@ public class IoporletUI extends UI{
 	private ThemeDisplay 				themeDisplay				= null;
 	private Label						statusLabel					= null;
 	private ICEPush 					pusher 						= null;
+	
+	private PropsUtil					propsUtil 					= new PropsUtil("resource/ioportlet.properties");
+	private boolean 					isDebugging					= Boolean.parseBoolean(propsUtil.get("debug"));
+	private boolean 					isLocalTesting				= Boolean.parseBoolean(propsUtil.get("localtesting"));
+
+	
 	//parameters 
 	private String 						host 						= "localhost";
 	private String 						protocol					= "http";
@@ -96,44 +104,46 @@ public class IoporletUI extends UI{
 		pusher = new ICEPush();
 		this.addExtension(pusher);
 
-		
-		themeDisplay = (ThemeDisplay)request.getAttribute(WebKeys.THEME_DISPLAY);
-		if(themeDisplay==null || !themeDisplay.isSignedIn()){
-			statusLabel.setValue("ThemeDisplay is null or not signed in");
-			return;
+		if(!isLocalTesting){
+			themeDisplay = (ThemeDisplay)request.getAttribute(WebKeys.THEME_DISPLAY);
+			if(themeDisplay==null || !themeDisplay.isSignedIn()){
+				statusLabel.setValue("ThemeDisplay is null or not signed in");
+				return;
+			}
+			else{
+				liferayScreenName = themeDisplay.getUser().getScreenName();
+			}
+			long companyId = themeDisplay.getCompanyId();
+			long ownerId = PortletKeys.PREFS_OWNER_ID_DEFAULT;
+			int ownerType = PortletKeys.PREFS_OWNER_TYPE_LAYOUT;
+			PortletDisplay portletDisplay= themeDisplay.getPortletDisplay();
+			String portletId= portletDisplay.getId();
+			PortletPreferences prefs;
+			try {
+				prefs = PortletPreferencesLocalServiceUtil.getPreferences(companyId, ownerId, ownerType, themeDisplay.getLayout().getPlid(), portletId);
+				host = prefs.getValue("host", "localhost");
+				protocol = prefs.getValue("protocol", "http");
+				timeout = Integer.parseInt(prefs.getValue("timeout", "10"));
+				port = Integer.parseInt(prefs.getValue("port", "9090"));
+				nsp = prefs.getValue("nsp", "/");
+				sourceId = prefs.getValue("sourceid", "");
+				statusLabel.setValue("host:" + host + "::protocol:" + protocol + "::timeout:" + timeout + "::port:" + port + "::source:" + sourceId);
+			} catch (Exception e) {
+				Notification.show("Error at initialising IOPortlet: " + e.getMessage(), Type.ERROR_MESSAGE);
+				return;
+			}
+			this.setupIpc();
 		}
 		else{
-			liferayScreenName = themeDisplay.getUser().getScreenName();
+			liferayScreenName = "test";
+			host = "localhost";
+			protocol = "http";
+			timeout = 10;
+			port = 9090;
+			nsp = "/";
+			sourceId = "iCyKglE-hurV2AtQAAAH";			
 		}
 		
-		long companyId = themeDisplay.getCompanyId();
-		long ownerId = PortletKeys.PREFS_OWNER_ID_DEFAULT;
-		int ownerType = PortletKeys.PREFS_OWNER_TYPE_LAYOUT;
-		PortletDisplay portletDisplay= themeDisplay.getPortletDisplay();
-		String portletId= portletDisplay.getId();
-		PortletPreferences prefs;
-		try {
-			prefs = PortletPreferencesLocalServiceUtil.getPreferences(companyId, ownerId, ownerType, themeDisplay.getLayout().getPlid(), portletId);
-			host = prefs.getValue("host", "localhost");
-			protocol = prefs.getValue("protocol", "http");
-			timeout = Integer.parseInt(prefs.getValue("timeout", "10"));
-			port = Integer.parseInt(prefs.getValue("port", "9090"));
-			nsp = prefs.getValue("nsp", "/");
-			sourceId = prefs.getValue("sourceid", "");
-			statusLabel.setValue("host:" + host + "::protocol:" + protocol + "::timeout:" + timeout + "::port:" + port + "::source:" + sourceId);
-		} catch (SystemException e1) {
-			e1.printStackTrace();
-		}
-		
-//		liferayScreenName = "test";
-//		host = "localhost";
-//		protocol = "http";
-//		timeout = 10;
-//		port = 9090;
-//		nsp = "/";
-//		sourceId = "SLU1-E5bKKE8VYP8AAAF";
-		
-		this.setupIpc();
 		if(sink==null)
 			this.createConnection();
 	}
@@ -282,7 +292,6 @@ public class IoporletUI extends UI{
 						continue;
 					//OUTPUT and INPUT both have these
 					final String _outputPath = _path + "." + _channelItemKey;
-					String out_data     = _channelItemAsObject.get("out_data").getAsString();
 					String gui_element	= _channelItemAsObject.get("guielement").getAsString();
 					String update_mode	= _channelItemAsObject.get("update_mode").getAsString();
 					String gui_id = "";
@@ -354,7 +363,7 @@ public class IoporletUI extends UI{
 											JsonObject _returnMessage = new JsonObject();
 											_returnMessage.addProperty("messagetype", ConnectionConsts.CLIENT_C_MESSAGE);
 											_returnMessage.addProperty("path" , _outputPath);	
-											_returnMessage.addProperty("datatype" , DataType.STRING.toString());
+											_returnMessage.addProperty("datatype" , DataType.JSON_STRING.toString());
 											_returnMessage.addProperty("data" , _input);
 											try {
 												sink.send(_returnMessage);
@@ -461,8 +470,8 @@ public class IoporletUI extends UI{
 								}
 								else if(_channelItemType.equals("OUTPUT")){
 									_output = new Image(gui_id);
+									statusLabel.setValue("Adding image output:" + gui_id);
 								}
-								statusLabel.setValue("Adding boolean input:" + gui_id);
 								
 							}
 							
@@ -474,12 +483,39 @@ public class IoporletUI extends UI{
 								}
 								else if(_channelItemType.equals("OUTPUT")){
 									_output = new ImageSlide(gui_id);
+									statusLabel.setValue("Adding imageslide:" + gui_id);
 								}
-								statusLabel.setValue("Adding boolean input:" + gui_id);
 								
 							}
 							
+							///// selection
+							else if(gui_element.equals("gui.selection")){
+								if(_channelItemType.equals("OUTPUT")){
+									_output = new Options(gui_id);
+								}
+								else if(_channelItemType.equals("INPUT")){
+									_output = new Options_Inputable(gui_id);
+									((Options_Inputable)_output).addInputListener(new InputListener(){
+										@Override
+										public void onUserInput(JsonElement userInput){
+											JsonObject _returnMessage = new JsonObject();
+											_returnMessage.addProperty("messagetype", ConnectionConsts.CLIENT_C_MESSAGE);
+											_returnMessage.addProperty("path" , _outputPath);	
+											_returnMessage.addProperty("datatype" , DataType.STRING.toString());// JSON_STRING as STRING
+											_returnMessage.addProperty("data" , userInput.toString());
+											try {
+												sink.send(_returnMessage);
+											} 
+											catch (ConnectionFailException e) {} 
+											catch (UnauthcatedClientException e) {}	
+										}										
+									});		
+								}
+								statusLabel.setValue("Adding gui.selection:" + gui_id);
+							}		
+
 							
+							/*******************************TO BE ADDED***********************************/
 							///// int input
 							else if(gui_element.equals("gui.intinput")){
 								statusLabel.setValue("gui.intinput not supported:" + gui_element);
@@ -490,11 +526,6 @@ public class IoporletUI extends UI{
 								statusLabel.setValue("gui.doubleinput not supported:" + gui_element);
 								return;
 							}							
-							///// selection
-							else if(gui_element.equals("gui.selection")){
-								statusLabel.setValue("gui.selection not supported:" + gui_element);
-								return;
-							}		
 							
 							
 							else

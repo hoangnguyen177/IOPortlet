@@ -93,5 +93,8 @@ public class BooleanInput_Inputable extends DisplayObject implements Inputable {
 			return null;
 		return new JsonPrimitive(((CheckBox)component).getValue());
 	}
+	
+	
+	
 
 }
