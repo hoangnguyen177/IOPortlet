@@ -11,8 +11,6 @@
 		<servlet-name>IoporletApplication</servlet-name>
 		<servlet-class>com.vaadin.server.VaadinServlet</servlet-class>
 		<init-param>
-			<description>
-			Vaadin UI class to use</description>
 			<param-name>UI</param-name>
 			<param-value>edu.uq.workways.ioporlet.IoporletUI</param-value>
 		</init-param>
@@ -24,14 +22,14 @@
 	
 	
 	<servlet>
-        <servlet-name>ICEPushPortlets</servlet-name>
+        <servlet-name>ICEPush for Portlets</servlet-name>
         <servlet-class>org.vaadin.artur.icepush.ICEPushServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
     <servlet-mapping>
-        <servlet-name>ICEPushPortlets</servlet-name>
-        <url-pattern>/icepush/*</url-pattern>
-        <!-- url-pattern>/*</url-pattern -->
+        <servlet-name>ICEPush for Portlets</servlet-name>
+        <!--url-pattern>/icepush/*</url-pattern-->
+        <url-pattern>/*</url-pattern>
     </servlet-mapping>
      
      

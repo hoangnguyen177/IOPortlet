@@ -74,7 +74,7 @@ public class IoporletUI extends UI{
 	private VerticalLayout 				layout						= null;
 	private ThemeDisplay 				themeDisplay				= null;
 	private Label						statusLabel					= null;
-	private ICEPush 					pusher 						= null;
+	private ICEPush 					pusher 						= new ICEPush();
 	
 	private PropsUtil					propsUtil 					= new PropsUtil("resource/ioportlet.properties");
 	private boolean 					isDebugging					= Boolean.parseBoolean(propsUtil.get("debug"));
@@ -96,14 +96,15 @@ public class IoporletUI extends UI{
 	/********************************************************/
 	@Override
 	public void init(VaadinRequest request) {
+		this.addExtension(pusher);
+
 		layout= new VerticalLayout();
 		this.setContent(layout);
+		
 		statusLabel = new Label("Status..........");
 		layout.addComponent(statusLabel);
 		
-		pusher = new ICEPush();
-		this.addExtension(pusher);
-
+		
 		if(!isLocalTesting){
 			themeDisplay = (ThemeDisplay)request.getAttribute(WebKeys.THEME_DISPLAY);
 			if(themeDisplay==null || !themeDisplay.isSignedIn()){
@@ -141,7 +142,7 @@ public class IoporletUI extends UI{
 			timeout = 10;
 			port = 9090;
 			nsp = "/";
-			sourceId = "iCyKglE-hurV2AtQAAAH";			
+			sourceId = "RvXisN7yQkQKixh7AAAH";			
 		}
 		
 		if(sink==null)
@@ -192,6 +193,11 @@ public class IoporletUI extends UI{
 			public void onConnectionEstablished(){
 			}
 			public void onDisconnect(){
+				try {
+					sink.disconnect();
+				} catch (ConnectionFailException e) {
+					e.printStackTrace();
+				}
 			}
 			public void onAuthResponse(JsonObject authResponse){
 				boolean authResult = Boolean.parseBoolean(authResponse.get("authresult").getAsString());
@@ -225,12 +231,14 @@ public class IoporletUI extends UI{
 				}
 				try {
 					outputs.get(path).addData(data, path, true);
+					layout.setEnabled(true);
 				} catch (UpperLimitNumberOfSeriesException e) {
 					e.printStackTrace();
 				} catch (InvalidDataException e) {
 					e.printStackTrace();
 				}
 				pusher.push();
+	            
 			}	
 			public void onSourceDisconnect(){
 				if(sink!=null && sink.isConnected()){
@@ -550,6 +558,7 @@ public class IoporletUI extends UI{
 							else
 								_output.addToLayout(layout);
 							pusher.push();
+				            
 						}
 					//}
 					
