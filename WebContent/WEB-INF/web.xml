@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app id="WebApp_ID" version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
-	<display-name>IOPorlet</display-name>
+	<display-name>IOPortlet</display-name>
 	<context-param>
 		<description>
 		Vaadin production mode</description>
@@ -8,39 +8,30 @@
 		<param-value>false</param-value>
 	</context-param>
 	<servlet>
-		<servlet-name>IoporletApplication</servlet-name>
+		<servlet-name>Ioportlet</servlet-name>
 		<servlet-class>com.vaadin.server.VaadinServlet</servlet-class>
 		<init-param>
+			<description>
+			Vaadin UI class to use</description>
 			<param-name>UI</param-name>
-			<param-value>edu.uq.workways.ioporlet.IoporletUI</param-value>
+			<param-value>edu.uq.workways.ioportlet.IoportletUI</param-value>
 		</init-param>
 		<init-param>
+			<description>
+			Application widgetset</description>
 			<param-name>widgetset</param-name>
-			<param-value>edu.uq.workways.ioporlet.widgetset.IoporletWidgetset</param-value>
+			<param-value>edu.uq.workways.ioportlet.widgetset.IoportletWidgetset</param-value>
 		</init-param>
 	</servlet>
 	
 	
-	<servlet>
-        <servlet-name>ICEPush for Portlets</servlet-name>
-        <servlet-class>org.vaadin.artur.icepush.ICEPushServlet</servlet-class>
-        <load-on-startup>1</load-on-startup>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>ICEPush for Portlets</servlet-name>
-        <!--url-pattern>/icepush/*</url-pattern-->
-        <url-pattern>/*</url-pattern>
-    </servlet-mapping>
-     
-     
-     
-     
+	<!-- servlet-mapping>
+		<servlet-name>Ioportlet</servlet-name>
+		<url-pattern>/IoportletUIServlet/*</url-pattern>
+	</servlet-mapping-->
+	
 	<servlet-mapping>
-		<servlet-name>IoporletApplication</servlet-name>
-		<url-pattern>/IoporletUIServlet/*</url-pattern>
-	</servlet-mapping>
-	<servlet-mapping>
-		<servlet-name>IoporletApplication</servlet-name>
+		<servlet-name>Ioportlet</servlet-name>
 		<url-pattern>/VAADIN/*</url-pattern>
 	</servlet-mapping>
 	<welcome-file-list>
