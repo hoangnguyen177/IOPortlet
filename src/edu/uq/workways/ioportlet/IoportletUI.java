@@ -138,7 +138,7 @@ public class IoportletUI extends UI {
 			timeout = 10;
 			port = 9090;
 			nsp = "/";
-			sourceId = "ekk_qf0uA5VzKnyLAAAA";			
+			sourceId = "tzTs-e0ktJLQDVB-AAAA";			
 		}
 		
 		Refresher refresher = new Refresher();
@@ -228,12 +228,12 @@ public class IoportletUI extends UI {
 			public void onMessage(JsonObject aMessage) throws InvalidMessageException{
 				String path = aMessage.get("path").getAsString();
 				String data = aMessage.get("data").getAsString();
+				boolean append = aMessage.get("append").getAsBoolean();
 				if(!outputs.containsKey(path)){
 					return;
 				}
 				try {
-					outputs.get(path).addData(data, path, true);
-					layout.markAsDirtyRecursive();
+					outputs.get(path).addData(data, path, !append);
 				} catch (UpperLimitNumberOfSeriesException e) {
 					e.printStackTrace();
 				} catch (InvalidDataException e) {
@@ -496,6 +496,46 @@ public class IoportletUI extends UI {
 								}
 								
 							}
+							
+							///////large image
+							else if(gui_element.equals("gui.largeimage")){
+								if(_channelItemType.equals("INPUT")){
+									statusLabel.setValue("gui.largeimage does not have INPUT option yet");
+									return;
+								}
+								else if(_channelItemType.equals("OUTPUT")){
+									
+									if(_channelItemAsObject.has("image_type"))
+									{
+										String imgType = (String)_channelItemAsObject.get("image_type").getAsString();
+										_output = new LargeImage(gui_id, imgType);
+									}
+									else
+										_output = new LargeImage(gui_id);
+									statusLabel.setValue("Adding gui.largeimage:" + gui_id);
+								}
+								
+							}
+							
+							///////video
+							else if(gui_element.equals("gui.video")){
+								if(_channelItemType.equals("INPUT")){
+									statusLabel.setValue("gui.video does not have INPUT option yet");
+									return;
+								}
+								else if(_channelItemType.equals("OUTPUT")){
+									if(_channelItemAsObject.has("video_type"))
+									{
+										String videoType = (String)_channelItemAsObject.get("video_type").getAsString();
+										_output = new Video(gui_id, videoType);	
+									}
+									else
+										_output = new Video(gui_id);
+									statusLabel.setValue("Adding gui.video:" + gui_id);
+								}
+								
+							}
+		
 							
 							///// selection
 							else if(gui_element.equals("gui.selection")){
