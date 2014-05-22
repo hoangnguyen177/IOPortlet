@@ -2,14 +2,17 @@ package edu.uq.workways.ioportlet;
 //java
 import java.util.Set;
 
+
 //vaadin
 import com.vaadin.ui.AbstractComponent;
 import com.vaadin.ui.AbstractLayout;
+
 
 //io library
 import edu.monash.io.iolibrary.ConfigurationConsts.DataType;
 import edu.monash.io.iolibrary.ConfigurationConsts.UpdateMode;
 import edu.monash.io.iolibrary.exceptions.InvalidDataTypeException;
+import edu.uq.workways.commons.utils.PropsUtil;
 
 public abstract class DisplayObject implements Displayable{
 	/*****************************************************/
@@ -19,6 +22,10 @@ public abstract class DisplayObject implements Displayable{
 	protected String 							id			="";
 	protected String							caption		="";
 	protected String							guiType		="";
+	private   PropsUtil						propsUtil 		= new PropsUtil("resource/ioportlet.properties");
+	private String tempfile									= propsUtil.get("tempfile");
+	private String linkName									= propsUtil.get("linkname");
+	
 	/*****************************************************/
 	
 	public AbstractComponent getComponent(){
@@ -32,6 +39,7 @@ public abstract class DisplayObject implements Displayable{
 		} catch (InvalidDataTypeException e) {
 			e.printStackTrace();
 		}
+		createDisplayObject();
 	}
 	
 
@@ -89,4 +97,24 @@ public abstract class DisplayObject implements Displayable{
 			layout.addComponent(component);
 	}
 
+	/**
+	 * returns the tempDir
+	 * @return
+	 */
+	public String getTempDir(){
+		return tempfile;
+	}
+	
+	/**
+	 * return the location of the link to tempDir
+	 * @return
+	 */
+	public String linkName(){
+		return linkName;
+	}
+	
+	/**
+	 * createDisplayObject
+	 */
+	public abstract void createDisplayObject();
 }

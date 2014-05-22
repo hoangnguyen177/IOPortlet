@@ -18,12 +18,10 @@ import edu.monash.io.iolibrary.ConfigurationConsts.UpdateMode;
 public class TextField extends DisplayObject{
 
 	public TextField(){
-		component = new com.vaadin.ui.TextField();
 	}
 	
 	public TextField(String _id){
 		this.setId(_id);
-		component = new com.vaadin.ui.TextField();
 	}
 	
 	@Override
@@ -79,6 +77,12 @@ public class TextField extends DisplayObject{
 	public Set<String> getDataSeriesIds() {
 		return data.keySet();
 	}
+
+	@Override
+	public void createDisplayObject() {
+		component = new com.vaadin.ui.TextField();
+	}
+
 	
 	/*************************************************************/
 	private Map<String, List<String>>			data	= new HashMap<String, List<String>>();

@@ -12,14 +12,10 @@ import com.vaadin.ui.Label;
 public class Options extends DisplayObject{
 
 	public Options(){
-		component = new Label();
-		((Label)component).setContentMode(ContentMode.HTML);
 	}
 	
 	public Options(String _id){
 		this.setId(_id);
-		component = new Label();
-		((Label)component).setContentMode(ContentMode.HTML);
 	}
 	
 	@Override
@@ -59,6 +55,12 @@ public class Options extends DisplayObject{
 	@Override
 	public void update() throws InvalidDataException {
 		
+	}
+
+	@Override
+	public void createDisplayObject() {
+		component = new Label();
+		((Label)component).setContentMode(ContentMode.HTML);
 	}
 
 }

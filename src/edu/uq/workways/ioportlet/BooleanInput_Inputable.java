@@ -22,8 +22,6 @@ public class BooleanInput_Inputable extends DisplayObject implements Inputable {
 	private String groupName = "";
 	/*************************************************************/
 	public BooleanInput_Inputable(String _id){
-		component = new CheckBox();
-		((CheckBox)component).setValue(true);
 		this.setId(_id);
 	}
 	@Override
@@ -92,6 +90,12 @@ public class BooleanInput_Inputable extends DisplayObject implements Inputable {
 		if(component ==null)
 			return null;
 		return new JsonPrimitive(((CheckBox)component).getValue());
+	}
+
+	@Override
+	public void createDisplayObject() {
+		component = new CheckBox();
+		((CheckBox)component).setValue(true);
 	}
 	
 	

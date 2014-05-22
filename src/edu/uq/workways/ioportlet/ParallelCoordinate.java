@@ -27,12 +27,6 @@ public class ParallelCoordinate  extends DisplayObject{
 	 */
 	public ParallelCoordinate(String _id){
 		this.setId(_id);
-		component = new ParCoords(this.id);
-		((ParCoords)component).setProperties("pcwidth", 1000);
-		((ParCoords)component).setProperties("pcheight", 600);
-		((ParCoords)component).setProperties("brushed", true);
-		((ParCoords)component).setWidth("1000px");
-		((ParCoords)component).setHeight("600px");
 	}
 
 	@Override
@@ -98,6 +92,16 @@ public class ParallelCoordinate  extends DisplayObject{
 	@Override
 	public void update() throws InvalidDataException{
 		
+	}
+
+	@Override
+	public void createDisplayObject() {
+		component = new ParCoords(this.id);
+		((ParCoords)component).setProperties("pcwidth", 1000);
+		((ParCoords)component).setProperties("pcheight", 600);
+		((ParCoords)component).setProperties("brushed", true);
+		((ParCoords)component).setWidth("1000px");
+		((ParCoords)component).setHeight("600px");
 	}
 	
 }

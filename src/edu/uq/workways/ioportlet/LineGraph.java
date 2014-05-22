@@ -47,8 +47,6 @@ public class LineGraph extends DisplayObject{
 	 * constructor: create a normal LineGraph
 	 */
 	public LineGraph(){
-		component = new DCharts();
-		((DCharts)component).show();
 	}
 	
 	
@@ -140,11 +138,17 @@ public class LineGraph extends DisplayObject{
 		return data.keySet();
 	}
 	
-		
+	@Override
+	public void createDisplayObject() {
+		component = new DCharts();
+		((DCharts)component).show();
+	}
+	
 	/******************************************************/
 	//private variables
 	private Map<String, List<String>>			data	= new HashMap<String, List<String>>();
 	private List<String>					seriesOrder	= new ArrayList<String>(MarkerStyles.values().length);
+	
 	
 	
 	

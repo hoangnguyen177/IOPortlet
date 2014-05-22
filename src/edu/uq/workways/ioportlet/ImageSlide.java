@@ -7,14 +7,16 @@ import java.util.UUID;
 import java.io.File;
 import java.io.FileOutputStream;
 
+
 //file resource
 import com.vaadin.server.FileResource;
 import com.vaadin.server.Resource;
-
 import com.vaadin.server.Sizeable.Unit;
 import com.vaadin.ui.VerticalLayout;
+
 //workway utils
 import edu.uq.workways.commons.utils.Base64;
+
 //addon
 import org.vaadin.tepi.imageviewer.ImageViewer;
 
@@ -26,14 +28,10 @@ public class ImageSlide extends DisplayObject{
 	 * constructor(s)
 	 */
 	public ImageSlide(){
-		component = new VerticalLayout();
-		component.setSizeFull();
 	}
 	
 	public ImageSlide(String _id){
 		this.setId(_id);
-		component = new VerticalLayout();
-		component.setSizeFull();
 	}
 	
 	@Override
@@ -48,7 +46,8 @@ public class ImageSlide extends DisplayObject{
 		byte[] imgContents = Base64.decode(data);
 		//now write it
 		try{
-			File newFile = new File("/tmp/" + UUID.randomUUID());
+			String tempDir = this.getTempDir() + "/";
+			File newFile = new File(tempDir + UUID.randomUUID());
 			FileOutputStream fos = new FileOutputStream(newFile);
 			fos.write(imgContents);
 			fos.close();
@@ -78,6 +77,12 @@ public class ImageSlide extends DisplayObject{
 	@Override
 	public void update() throws InvalidDataException {
 		
+	}
+
+	@Override
+	public void createDisplayObject() {
+		component = new VerticalLayout();
+		component.setSizeFull();
 	}
 
 }

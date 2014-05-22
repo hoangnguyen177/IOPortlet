@@ -53,6 +53,9 @@ import edu.uq.workways.commons.utils.PropsUtil;
 @PreserveOnRefresh
 @Widgetset("edu.uq.workways.ioportlet.widgetset.IoportletWidgetset")
 public class IoportletUI extends UI {
+	private static final long serialVersionUID = 1L;
+
+
 
 	@WebServlet(value = "/*", asyncSupported = true, initParams = {
             @WebInitParam(name = "ui", value = "edu.uq.workways.ioportlet.IoportletUI"),
@@ -138,7 +141,7 @@ public class IoportletUI extends UI {
 			timeout = 10;
 			port = 9090;
 			nsp = "/";
-			sourceId = "tzTs-e0ktJLQDVB-AAAA";			
+			sourceId = "c-iNi2whKuZWZet4AAAJ";			
 		}
 		
 		Refresher refresher = new Refresher();
@@ -536,7 +539,27 @@ public class IoportletUI extends UI {
 								
 							}
 		
-							
+							///minc viewer
+							else if(gui_element.equals("mincviewer.file")){
+								if(_channelItemType.equals("INPUT")){
+									statusLabel.setValue("mincviewer.file does not have INPUT option yet");
+									return;
+								}
+								else if(_channelItemType.equals("OUTPUT")){
+									statusLabel.setValue("Adding mincviewer.file:" + gui_id);
+									_output = new MincViewer(gui_id, true);
+								}
+							}
+							else if(gui_element.equals("mincviewer.url")){
+								if(_channelItemType.equals("INPUT")){
+									statusLabel.setValue("mincviewer.url does not have INPUT option yet");
+									return;
+								}
+								else if(_channelItemType.equals("OUTPUT")){
+									_output = new MincViewer(gui_id, false);
+									statusLabel.setValue("Adding mincviewer.url:" + gui_id);
+								}
+							}							
 							///// selection
 							else if(gui_element.equals("gui.selection")){
 								if(_channelItemType.equals("OUTPUT")){

@@ -25,18 +25,10 @@ public class Options_Inputable extends DisplayObject implements Inputable {
 	private JsonArray arrayReturn = new JsonArray();
 	/***************************************************/
 	public Options_Inputable(){
-		component = new OptionGroup();
-		((OptionGroup)component).setMultiSelect(true);
-		((OptionGroup)component).setNullSelectionAllowed(false);
-		((OptionGroup)component).setImmediate(true);
 	}
 	
 	public Options_Inputable(String _id){
-		component = new OptionGroup();
 		this.setId(_id);	
-		((OptionGroup)component).setMultiSelect(true);
-		((OptionGroup)component).setNullSelectionAllowed(false);
-		((OptionGroup)component).setImmediate(true);
 	}
 	
 	@Override
@@ -138,6 +130,14 @@ public class Options_Inputable extends DisplayObject implements Inputable {
 			});
 			layout.addComponent(submitButton);
 		}
+	}
+
+	@Override
+	public void createDisplayObject() {
+		component = new OptionGroup();
+		((OptionGroup)component).setMultiSelect(true);
+		((OptionGroup)component).setNullSelectionAllowed(false);
+		((OptionGroup)component).setImmediate(true);
 	}
 	
 	

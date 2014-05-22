@@ -20,12 +20,10 @@ public class TextArea extends DisplayObject{
 	 * constructor(s)
 	 */
 	public TextArea(){
-		component = new com.vaadin.ui.TextArea();
 	}
 	
 	public TextArea(String _id){
 		this.setId(_id);
-		component = new com.vaadin.ui.TextArea();
 	}
 	
 	@Override
@@ -82,8 +80,14 @@ public class TextArea extends DisplayObject{
 		return data.keySet();
 	}
 	
+	@Override
+	public void createDisplayObject() {
+		component = new com.vaadin.ui.TextArea();
+	}
+	
 	/*************************************************************/
 	private Map<String, List<String>>			data	= new HashMap<String, List<String>>();
 	private List<String>					seriesOrder	= new LinkedList<String>();
+	
 	
 }
