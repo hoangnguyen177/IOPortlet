@@ -1,6 +1,11 @@
 package edu.uq.workways.ioportlet;
 
 //java
+import static edu.uq.workways.commons.Constants.DB_DRIVER;
+
+import java.sql.Date;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Queue;
 import java.util.Set;
@@ -15,6 +20,7 @@ import javax.servlet.annotation.WebServlet;
 
 
 
+
 //refresher
 import com.github.wolfie.refresher.Refresher;
 import com.github.wolfie.refresher.Refresher.RefreshListener;
@@ -25,14 +31,19 @@ import com.vaadin.addon.ipcforliferay.event.LiferayIPCEvent;
 import com.vaadin.addon.ipcforliferay.event.LiferayIPCEventListener;
 import com.vaadin.annotations.PreserveOnRefresh;
 import com.vaadin.annotations.Widgetset;
+import com.vaadin.data.util.filter.And;
+import com.vaadin.data.util.filter.Compare.Equal;
+import com.vaadin.data.util.sqlcontainer.SQLContainer;
+import com.vaadin.data.util.sqlcontainer.connection.JDBCConnectionPool;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.*;
-import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Notification.Type;
 //gson
 import com.google.gson.JsonObject;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.service.PortletPreferencesLocalServiceUtil;
 import com.liferay.portal.theme.PortletDisplay;
@@ -40,6 +51,8 @@ import com.liferay.portal.theme.ThemeDisplay;
 import com.liferay.portal.util.PortletKeys;
 
 import edu.monash.io.iolibrary.ConfigurationConsts.DataType;
+import edu.monash.io.iolibrary.ConfigurationConsts.UpdateMode;
+import edu.monash.io.iolibrary.exceptions.InvalidDataTypeException;
 //socket io
 import edu.monash.io.socketio.connection.SinkConnection;
 import edu.monash.io.socketio.connection.SinkListener;
@@ -48,20 +61,49 @@ import edu.monash.io.socketio.exceptions.ConnectionFailException;
 import edu.monash.io.socketio.exceptions.InvalidMessageException;
 import edu.monash.io.socketio.exceptions.InvalidSourceException;
 import edu.monash.io.socketio.exceptions.UnauthcatedClientException;
+import edu.uq.workways.commons.CommonProperties;
+import edu.uq.workways.commons.utils.DatabaseHelper;
 import edu.uq.workways.commons.utils.PropsUtil;
+import edu.uq.workways.commons.utils.VaadinHelper;
 
 @PreserveOnRefresh
 @Widgetset("edu.uq.workways.ioportlet.widgetset.IoportletWidgetset")
 public class IoportletUI extends UI {
 	private static final long serialVersionUID = 1L;
 
-
-
 	@WebServlet(value = "/*", asyncSupported = true, initParams = {
             @WebInitParam(name = "ui", value = "edu.uq.workways.ioportlet.IoportletUI"),
             @WebInitParam(name = "productionMode", value = "false") })
 	public static class Servlet extends VaadinServlet {
 	}
+	
+	public static enum MessageType {
+		//definition: for declaring what types of UIs
+		//source: messsages from source
+		//sink: messages from sink
+		//modification: if there is any changes in the definition, and its date
+		//TODO: implement modification later		
+        definition, source, sink, modification ;
+        public static MessageType fromString(String s) {
+            if (s != null) {
+            	MessageType[] vs = values();
+                for (int i = 0; i < vs.length; i++) {
+                    if (vs[i].toString().equalsIgnoreCase(s)) {
+                        return vs[i];
+                    }
+                }
+            }
+            return null;
+        }
+        public static String[] stringValues() {
+        	MessageType[] vs = values();
+            String[] ss = new String[vs.length];
+            for (int i = 0; i < vs.length; i++) {
+                ss[i] = vs[i].toString();
+            }
+            return ss;
+        }
+    } 
 	/********************************************************/	
 	private VerticalLayout 				layout 						= null;
 	
@@ -75,7 +117,10 @@ public class IoportletUI extends UI {
 	private PropsUtil					propsUtil 					= new PropsUtil("resource/ioportlet.properties");
 	private boolean 					isDebugging					= Boolean.parseBoolean(propsUtil.get("debug"));
 	private boolean 					isLocalTesting				= Boolean.parseBoolean(propsUtil.get("localtesting"));
-
+	//messages parameter
+	private SQLContainer 				messageContainer			= null;
+	private SQLContainer 				sourceSinkContainer			= null;
+	private JDBCConnectionPool			connectionPool				= null;
 	
 	//parameters 
 	private String 						host 						= "localhost";
@@ -84,15 +129,21 @@ public class IoportletUI extends UI {
 	private int							port						= 9090;	
 	private String						nsp							= "/";
 	private String						sourceId					= "";
+	private Long						sourcesinkId				= -1L;
 	
 	private Map<String, Displayable>		outputs					= new HashMap<String, Displayable>();
 	//groups of inputtables
 	private Map<String, DisplayableGroup>	displayablesGroup		= new HashMap<String, DisplayableGroup>();	
 	//message queue
-	private Queue<JsonObject> 				messageQueue 			= new ConcurrentLinkedQueue<JsonObject>();
-			
-	private boolean							portletGuiInitialised			= false;
+	//TODO: check here
+	//private Queue<JsonObject>				messagesToBeSaved		= new ConcurrentLinkedQueue<JsonObject>();		
+	private boolean							portletGuiInitialised	= false;
 	private JsonObject						sourceDefinition		= null;
+	
+	private String 							portletId				= "";
+	
+	
+		
 	/********************************************************/
 	
 	@Override
@@ -117,7 +168,7 @@ public class IoportletUI extends UI {
 			long ownerId = PortletKeys.PREFS_OWNER_ID_DEFAULT;
 			int ownerType = PortletKeys.PREFS_OWNER_TYPE_LAYOUT;
 			PortletDisplay portletDisplay= themeDisplay.getPortletDisplay();
-			String portletId= portletDisplay.getId();
+			portletId= portletDisplay.getId();
 			PortletPreferences prefs;
 			try {
 				prefs = PortletPreferencesLocalServiceUtil.getPreferences(companyId, ownerId, ownerType, themeDisplay.getLayout().getPlid(), portletId);
@@ -135,17 +186,38 @@ public class IoportletUI extends UI {
 			this.setupIpc();
 		}
 		else{
-			liferayScreenName = "test";
+			liferayScreenName = "hoangnguyen";
 			host = "localhost";
 			protocol = "http";
 			timeout = 10;
 			port = 9090;
 			nsp = "/";
-			sourceId = "c-iNi2whKuZWZet4AAAJ";			
+			sourceId = "j841fRSDQSXob2kFAAAe";			
 		}
-		
+		try {
+			initSQLContainer();
+			//if local testing, and there is no entry with source id, then create a new one
+			if(isLocalTesting){
+				sourceSinkContainer.addContainerFilter(new Equal("sourceid", sourceId));
+				if(sourceSinkContainer.size() == 0){
+					sourceSinkContainer.removeAllContainerFilters();
+					Object _newItemId = sourceSinkContainer.addItem();
+					sourceSinkContainer.getContainerProperty(_newItemId, "portletid").setValue("portletid");
+					sourceSinkContainer.getContainerProperty(_newItemId, "sourceid").setValue(sourceId);
+					sourceSinkContainer.getContainerProperty(_newItemId, "workflowrun_id").setValue(1L);
+				}
+				sourceSinkContainer.commit();
+			}
+		} catch (SQLException e) {
+			Notification.show("Error connecting to the database:" + e.getMessage(), Type.ERROR_MESSAGE);
+			return;
+		}
+		/*reconstrut IO portlet*/
+		reconstructIOPortletFromDatabase();
+		System.out.println("refhreshing ..................");
 		Refresher refresher = new Refresher();
 	    refresher.setRefreshInterval(500);
+	    //refresher.addListener(new ProcessMessageListener());
         addExtension(refresher);
         
 		if(sink==null)
@@ -176,7 +248,145 @@ public class IoportletUI extends UI {
 		    }
 		});
 	}
+	/**
+	 * initialise ioportlet from database
+	 */
+	private void reconstructIOPortletFromDatabase(){
+		JsonParser _parser = new JsonParser();
+		//get the sourcesink id
+		Object _itemId = VaadinHelper.findRowWithValue(sourceSinkContainer, "sourceid", sourceId);
+		if(_itemId == null)
+		{
+			Notification.show("Cannot find source id:" + sourceId, Type.WARNING_MESSAGE);
+			return;
+		}
+		sourcesinkId = (Long)sourceSinkContainer.getContainerProperty(_itemId, "id").getValue();
+		//using the filter
+		messageContainer.removeAllContainerFilters();
+		messageContainer.addContainerFilter(new And(new Equal("sourcesink_id", sourcesinkId), new Equal("type", MessageType.definition.toString())));
+		Collection<?> _messagesIds = messageContainer.getItemIds();
+		if(_messagesIds.size() == 0)
+			return; // no definition yet
+		//init the GUI elements
+		for(Object _messageId: _messagesIds){
+			JsonParser parser = new JsonParser();
+			if(messageContainer.getContainerProperty(_messageId, "message") == null|| 
+					messageContainer.getContainerProperty(_messageId, "message").getValue() == null)
+				continue;
+			try{
+				if(!portletGuiInitialised){
+					sourceDefinition = parser.parse((String)messageContainer.getContainerProperty(_messageId, "message").getValue()).getAsJsonObject();
+					parseSourceDefinition(sourceDefinition);
+					portletGuiInitialised = true;
+				}
+			}
+			catch(JsonSyntaxException e){
+				Notification.show("Invalid definition:" + messageContainer.getContainerProperty(_messageId, "message").getValue());
+				continue;
+			}
+			break;	
+		}
+		//get the latest time stamp
+		//this is to deal with cases when lastMessageStamp is not updated even when some messages are saved
+		Timestamp _lastRecordedTimeStamp = null;
+		boolean  _lastMessageTimeStampChanged = false;
+		if(sourceSinkContainer.getContainerProperty(_itemId, "lastmessagestamp")!= null &&
+				sourceSinkContainer.getContainerProperty(_itemId, "lastmessagestamp").getValue()!= null){
+			_lastRecordedTimeStamp = (Timestamp)sourceSinkContainer.getContainerProperty(_itemId, "lastmessagestamp").getValue();
+		}
+		
+		
+		//map of path and update modes for this sourceid
+		Map<String, String> pathUpdateModes = getPathUpdateMode(sourceDefinition);
+		Set<String> paths = pathUpdateModes.keySet();
+		//populate the messages based on the path
+		for(String path: paths){
+			UpdateMode updateMode = null;
+			messageContainer.removeAllContainerFilters();
+			//only worry about messages from source atm
+			messageContainer.addContainerFilter(new And(new Equal("path", path), new Equal("type", MessageType.source.toString())));
+			messageContainer.sort(new Object[]{"tstamp"}, new boolean[]{true});
+			
+			//get the one with the latest tstamp
+			Object _lastMessageId = messageContainer.lastItemId();
+			if(messageContainer.getContainerProperty(_lastMessageId, "tstamp")!=null &&  
+					messageContainer.getContainerProperty(_lastMessageId, "tstamp").getValue()!=null){
+				Timestamp _lastMessageTimeStamp = (Timestamp) messageContainer.getContainerProperty(_lastMessageId, "tstamp").getValue();
+				if(_lastRecordedTimeStamp ==null || _lastRecordedTimeStamp.before(_lastMessageTimeStamp))
+				{
+					_lastRecordedTimeStamp = _lastMessageTimeStamp;
+					_lastMessageTimeStampChanged = true;
+				}
+			}
+			
+			try {
+				updateMode = UpdateMode.fromString(pathUpdateModes.get(path));
+			} catch (InvalidDataTypeException e) {
+				updateMode = UpdateMode.OVERWRITE;
+			}
+			if(updateMode == UpdateMode.APPEND){
+				//get all messages
+				Collection<?> _messageIds = messageContainer.getItemIds();
+				for(Object _messageId: _messageIds){
+					String _msgString = (String)messageContainer.getContainerProperty(_messageId, "message").getValue();
+					try{
+						JsonObject _msg = _parser.parse(_msgString).getAsJsonObject();
+						_msg.addProperty("recorded", true);
+						if(!_msg.has("sourcesinkid"))
+							_msg.addProperty("sourcesinkid", sourcesinkId);
+						_msg.addProperty("filepath", (String)messageContainer.getContainerProperty(_messageId, "filepath").getValue());
+						_msg.addProperty("append", false);
+						
+						try {
+							outputs.get(path).addData(_msg);
+						} catch (UpperLimitNumberOfSeriesException e) {
+							e.printStackTrace();
+						} catch (InvalidDataException e) {
+							e.printStackTrace();
+						}						
+					}
+					catch(JsonSyntaxException e){ continue;}
+				}
+			}
+			else if(updateMode == UpdateMode.OVERWRITE){
+				//only worry about the last message
+				Object _lastItemId = messageContainer.lastItemId();
+				String _lastMessageStr = (String)messageContainer.getContainerProperty(_lastItemId, "message").getValue();
+				try{
+					JsonObject _lastMessage = _parser.parse(_lastMessageStr).getAsJsonObject();
+					_lastMessage.addProperty("recorded", true);
+					if(!_lastMessage.has("sourcesinkid"))
+						_lastMessage.addProperty("sourcesinkid", sourcesinkId);
+					_lastMessage.addProperty("filepath", (String)messageContainer.getContainerProperty(_lastItemId, "filepath").getValue());
+					_lastMessage.addProperty("append", false);
+
+					if(!outputs.containsKey(path)){
+						return;
+					}
+					try {
+						outputs.get(path).addData(_lastMessage);
+					} catch (UpperLimitNumberOfSeriesException e) {
+						e.printStackTrace();
+					} catch (InvalidDataException e) {
+						e.printStackTrace();
+					}
+				}
+				catch(JsonSyntaxException e){}
+			}
+		}
+		
+		//updated
+		if(_lastMessageTimeStampChanged){
+			sourceSinkContainer.getContainerProperty(_itemId, "lastmessagestamp").setValue(_lastRecordedTimeStamp);
+			try{
+				sourceSinkContainer.commit();
+			}
+			catch(Exception e){/*ignore*/}
+		}
 	
+		
+		
+	}
 	/**
 	 * create the connection
 	 */
@@ -209,7 +419,16 @@ public class IoportletUI extends UI {
 				if(sourcesList.has(sourceId)){
 					try {
 						statusLabel.setValue("Select source:" + sourceId);
-						sink.selectSource(sourceId);
+						//now get the timestamp/if null then return 
+						Object _connectionRowId = VaadinHelper.findRowWithValue(sourceSinkContainer, "id", sourcesinkId);
+						if(_connectionRowId != null){
+							Timestamp _lastMessageFromServer = null;
+							if(sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp")!= null &&
+									sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp").getValue()!= null){
+								_lastMessageFromServer = (Timestamp)sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp").getValue();
+							}
+							sink.selectSource(sourceId, _lastMessageFromServer);
+						}
 					} catch (UnauthcatedClientException e) {
 						statusLabel.setValue("Error@selecting source:" + e.getMessage()+ ".Exit!");
 						return;
@@ -217,10 +436,24 @@ public class IoportletUI extends UI {
 						statusLabel.setValue("Error@selecting source:" + e.getMessage()+ ".Exit!");
 						return;
 					}
-					//selecting source successfully, now creating items accordingly
+					//selecting source successfully, now creating items if they are not created
+					//TODO: now just simplify it, later I need to check whether its different
 					sourceDefinition = sourcesList.getAsJsonObject(sourceId);
-					parseSourceDefinition(sourceDefinition);
-					portletGuiInitialised = true;
+					if(!portletGuiInitialised){
+						parseSourceDefinition(sourceDefinition);
+						portletGuiInitialised = true;
+						//save the sourceDefinition
+						Long _timeStampLong = authResponse.get("timestamp").getAsLong();
+						Timestamp _timeStamp = new Timestamp(_timeStampLong);
+						//save this message
+						messageContainer.removeAllContainerFilters();
+						Object _newItemId = messageContainer.addItem();
+						messageContainer.getContainerProperty(_newItemId, "message").setValue(sourceDefinition.toString());
+						messageContainer.getContainerProperty(_newItemId, "type").setValue(MessageType.definition.toString());
+						messageContainer.getContainerProperty(_newItemId, "path").setValue(sourceId+"");//definition needs no path
+						messageContainer.getContainerProperty(_newItemId, "sourcesink_id").setValue(sourcesinkId);
+						messageContainer.getContainerProperty(_newItemId, "tstamp").setValue(_timeStamp);						
+					}
 				}
 				else{
 					statusLabel.setValue("source:" + sourceId + " is not in sourcelist:" + sourcesList + ". Exit!");
@@ -229,20 +462,21 @@ public class IoportletUI extends UI {
 				
 			}
 			public void onMessage(JsonObject aMessage) throws InvalidMessageException{
+				System.out.println("new message");
 				String path = aMessage.get("path").getAsString();
-				String data = aMessage.get("data").getAsString();
-				boolean append = aMessage.get("append").getAsBoolean();
+				aMessage.addProperty("sourcesinkid", sourcesinkId);
 				if(!outputs.containsKey(path)){
 					return;
 				}
 				try {
-					outputs.get(path).addData(data, path, !append);
+					outputs.get(path).addData(aMessage);
 				} catch (UpperLimitNumberOfSeriesException e) {
 					e.printStackTrace();
 				} catch (InvalidDataException e) {
 					e.printStackTrace();
 				}
-//				messageQueue.offer(aMessage);
+				//TODO: check here
+				//messagesToBeSaved.offer(aMessage);
 			}	
 			public void onSourceDisconnect(){
 				if(sink!=null && sink.isConnected()){
@@ -256,6 +490,7 @@ public class IoportletUI extends UI {
 			public void onSourceConnect(JsonObject sourceList){
 			}
 			public void onPermissionChanged(String newPermission){
+				System.out.println("Permission  changed:" + newPermission);
 			}
 			public void onLinkEstablished(String allowedOperations){
 			}
@@ -268,7 +503,74 @@ public class IoportletUI extends UI {
 	}
 	
 	
+	/**
+	 * init SQL container, create a table just for messages of the user
+	 * @throws SQLException
+	 */
+	private void initSQLContainer() throws SQLException{
+		connectionPool 				= DatabaseHelper.getCommonConnectionPool();
+		String databaseDriver = CommonProperties.get(DB_DRIVER);
+        if(databaseDriver == null || databaseDriver.isEmpty())
+            databaseDriver = "org.postgresql.Driver";
+        String initStatement = "CREATE TABLE IF NOT EXISTS "+ liferayScreenName +"(" +
+								"id BIGSERIAL NOT NULL," +
+								"type varchar(10), " +
+								"message text," + 
+								"tstamp TIMESTAMP WITH TIME ZONE,"+
+								"sourcesink_id BIGINT NOT NULL references sourcesink(id) ON DELETE CASCADE,"+
+								"path text,"+
+								"filepath text,"+
+								"CONSTRAINT message_key PRIMARY KEY (id));";
+        DatabaseHelper.initTable(connectionPool, databaseDriver, liferayScreenName, initStatement);        
+        messageContainer 			= DatabaseHelper.initContainers(connectionPool, liferayScreenName);     
+        sourceSinkContainer 			= DatabaseHelper.initContainers(connectionPool, "sourcesink");    
+    }
 	
+	/**
+	 * get the update mode from the definition
+	 * @param definition
+	 * @return
+	 */
+	private Map<String, String> getPathUpdateMode(JsonObject definition){
+		Map<String, String> pathUpdateModes = new HashMap<String, String>();
+		Set<Map.Entry<String,JsonElement>> entries = definition.entrySet();
+		Iterator<Map.Entry<String, JsonElement>> iterator = entries.iterator();
+		while(iterator.hasNext()){
+			Map.Entry<String, JsonElement> _entry = iterator.next();
+			String _key = _entry.getKey();
+			if(!_entry.getValue().isJsonObject())
+				continue;
+			JsonObject _value = _entry.getValue().getAsJsonObject();
+			if(_value.has("type") && _value.get("type").getAsString().equals("channel")){
+				//now get the input/output/inout type within this channel
+				JsonObject _channel = _value;
+				String containerId = _channel.get("containerid").getAsString();
+				String _path = containerId + "." + _key;
+				Set<Map.Entry<String,JsonElement>> _channelItems = _channel.entrySet();
+				Iterator<Map.Entry<String, JsonElement>> _channelItemsIterator = _channelItems.iterator();
+				while(_channelItemsIterator.hasNext()){
+					Map.Entry<String, JsonElement> _channelItem = _channelItemsIterator.next();
+					String _channelItemKey = _channelItem.getKey();
+					JsonElement _channelItemValue = _channelItem.getValue();
+					if(!_channelItemValue.isJsonObject())
+						continue;
+					JsonObject _channelItemAsObject = _channelItemValue.getAsJsonObject();
+					if(!_channelItemAsObject.has("type"))
+						continue;
+					String _channelItemType = _channelItemAsObject.get("type").getAsString();
+					//not interested in other cases
+					if(!_channelItemType.equals("INPUT") && !_channelItemType.equals("OUTPUT")) //INOUT is not used anymore
+						continue;
+					//OUTPUT and INPUT both have these
+					final String _outputPath = _path + "." + _channelItemKey;
+					String gui_element	= _channelItemAsObject.get("guielement").getAsString();
+					String update_mode	= _channelItemAsObject.get("update_mode").getAsString();
+					pathUpdateModes.put(_outputPath, update_mode);
+				}
+			}
+		}		
+		return pathUpdateModes;
+	}
 	/**
 	 * source definition
 	 * @param definition
@@ -345,8 +647,8 @@ public class IoportletUI extends UI {
 									return;
 								}
 								else {
-									_output = new LineGraph();
-									_output.setId(gui_id);
+									_output = new LineGraph(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
 								}
 							}
 							/////////////graph bar
@@ -366,7 +668,8 @@ public class IoportletUI extends UI {
 //									String _inputaction = "";
 //									if(_channelItemAsObject.has("inputaction"))
 //										_inputaction = _channelItemAsObject.get("inputaction").getAsString();
-									_output = new ParallelCoordinate_Inputable(gui_id);
+									_output = new ParallelCoordinate_Inputable(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
 									((ParallelCoordinate_Inputable)_output).addInputListener(new InputListener(){
 										@Override
 										public void onUserInput(JsonElement userInput){
@@ -389,7 +692,7 @@ public class IoportletUI extends UI {
 									
 								}
 								else if(_channelItemType.equals("OUTPUT")){
-									_output = new ParallelCoordinate(gui_id);
+									_output = new ParallelCoordinate(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
 								}
 								statusLabel.setValue("Adding parallel coordinates id:" + gui_id);
 							}
@@ -397,7 +700,9 @@ public class IoportletUI extends UI {
 							//////////text area
 							else if(gui_element.equals("gui.textarea")){
 								if(_channelItemType.equals("INPUT")){
-									_output = new TextArea_Inputable(gui_id);
+									_output = new TextArea_Inputable(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
+
 									((TextArea_Inputable)_output).addInputListener(new InputListener(){
 										@Override
 										public void onUserInput(JsonElement userInput){
@@ -416,14 +721,18 @@ public class IoportletUI extends UI {
 									});									
 								}
 								else if(_channelItemType.equals("OUTPUT")){
-									_output = new TextArea(gui_id);
+									_output = new TextArea(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
+
 								}
 								statusLabel.setValue("Adding textarea:" + gui_id);
 							}
 							//////////text field
 							else if(gui_element.equals("gui.textfield")){
 								if(_channelItemType.equals("INPUT")){
-									_output = new TextField_Inputable(gui_id);
+									_output = new TextField_Inputable(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
+
 									((TextField_Inputable)_output).addInputListener(new InputListener(){
 										@Override
 										public void onUserInput(JsonElement userInput){
@@ -442,14 +751,18 @@ public class IoportletUI extends UI {
 									});									
 								}
 								else if(_channelItemType.equals("OUTPUT")){
-									_output = new TextField(gui_id);
+									_output = new TextField(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
+
 								}
 								statusLabel.setValue("Adding textfield:" + gui_id);
 							}
 							///// boolean input
 							else if(gui_element.equals("gui.booleaninput")){
 								if(_channelItemType.equals("INPUT")){
-									_output = new BooleanInput_Inputable(gui_id);
+									_output = new BooleanInput_Inputable(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
+
 									((BooleanInput_Inputable)_output).addInputListener(new InputListener(){
 										@Override
 										public void onUserInput(JsonElement userInput){
@@ -481,7 +794,9 @@ public class IoportletUI extends UI {
 									return;
 								}
 								else if(_channelItemType.equals("OUTPUT")){
-									_output = new Image(gui_id);
+									_output = new Image(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
+
 									statusLabel.setValue("Adding image output:" + gui_id);
 								}
 								
@@ -494,7 +809,9 @@ public class IoportletUI extends UI {
 									return;
 								}
 								else if(_channelItemType.equals("OUTPUT")){
-									_output = new ImageSlide(gui_id);
+									_output = new ImageSlide(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
+
 									statusLabel.setValue("Adding imageslide:" + gui_id);
 								}
 								
@@ -511,10 +828,11 @@ public class IoportletUI extends UI {
 									if(_channelItemAsObject.has("image_type"))
 									{
 										String imgType = (String)_channelItemAsObject.get("image_type").getAsString();
-										_output = new LargeImage(gui_id, imgType);
+										_output = new LargeImage(gui_id, liferayScreenName, messageContainer, sourceSinkContainer, imgType);
 									}
 									else
-										_output = new LargeImage(gui_id);
+										_output = new LargeImage(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
 									statusLabel.setValue("Adding gui.largeimage:" + gui_id);
 								}
 								
@@ -530,10 +848,11 @@ public class IoportletUI extends UI {
 									if(_channelItemAsObject.has("video_type"))
 									{
 										String videoType = (String)_channelItemAsObject.get("video_type").getAsString();
-										_output = new Video(gui_id, videoType);	
+										_output = new Video(gui_id, liferayScreenName, messageContainer, sourceSinkContainer, videoType);	
 									}
 									else
-										_output = new Video(gui_id);
+										_output = new Video(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
 									statusLabel.setValue("Adding gui.video:" + gui_id);
 								}
 								
@@ -547,7 +866,8 @@ public class IoportletUI extends UI {
 								}
 								else if(_channelItemType.equals("OUTPUT")){
 									statusLabel.setValue("Adding mincviewer.file:" + gui_id);
-									_output = new MincViewer(gui_id, true);
+									_output = new MincViewer(gui_id, liferayScreenName, messageContainer, sourceSinkContainer, true);
+									_output.setMessageContainer(messageContainer);
 								}
 							}
 							else if(gui_element.equals("mincviewer.url")){
@@ -556,17 +876,20 @@ public class IoportletUI extends UI {
 									return;
 								}
 								else if(_channelItemType.equals("OUTPUT")){
-									_output = new MincViewer(gui_id, false);
+									_output = new MincViewer(gui_id, liferayScreenName, messageContainer, sourceSinkContainer, false);
+									_output.setMessageContainer(messageContainer);
 									statusLabel.setValue("Adding mincviewer.url:" + gui_id);
 								}
 							}							
 							///// selection
 							else if(gui_element.equals("gui.selection")){
 								if(_channelItemType.equals("OUTPUT")){
-									_output = new Options(gui_id);
+									_output = new Options(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
 								}
 								else if(_channelItemType.equals("INPUT")){
-									_output = new Options_Inputable(gui_id);
+									_output = new Options_Inputable(gui_id, liferayScreenName, messageContainer, sourceSinkContainer);
+									_output.setMessageContainer(messageContainer);
 									((Options_Inputable)_output).addInputListener(new InputListener(){
 										@Override
 										public void onUserInput(JsonElement userInput){
@@ -608,6 +931,7 @@ public class IoportletUI extends UI {
 							_output.setCaption(caption);
 							_output.setGuiType(gui_element);
 							_output.setUpdateMode(update_mode);
+							_output.setParentUI(this);
 							outputs.put(_outputPath, _output);
 							if(belongToGroup){
 								if(displayablesGroup.containsKey(groupName))
@@ -630,6 +954,69 @@ public class IoportletUI extends UI {
 			}
 		}
 		
+	}
+	
+	//////////////////////////////////////////////////////////////////////
+	public class ProcessMessageListener implements RefreshListener {
+        private static final long serialVersionUID = 1L;
+		@Override
+        public void refresh(Refresher source) {
+			//save 10 messages max
+			//TODO: check here
+			/*
+			Timestamp _latestTimestamp = null;
+			boolean _needToSaveMessage = false;
+			boolean _needToUpdateLatestTimeStamp = false;
+			for(int i=0; i< 10 && !messagesToBeSaved.isEmpty(); i++){
+				JsonObject _msg = messagesToBeSaved.poll();
+				String _path = _msg.get("path").getAsString();
+				Long _timeStampLong = _msg.get("timestamp").getAsLong();
+				Timestamp _timeStamp = new Timestamp(_timeStampLong);
+				if(i==0)
+					_latestTimestamp = _timeStamp;
+				if(_timeStamp.after(_latestTimestamp))
+					_latestTimestamp = _timeStamp;
+				//save this message
+				messageContainer.removeAllContainerFilters();
+				Object _newItemId = messageContainer.addItem();
+				messageContainer.getContainerProperty(_newItemId, "message").setValue(_msg.toString());
+				messageContainer.getContainerProperty(_newItemId, "type").setValue(MessageType.source.toString());
+				messageContainer.getContainerProperty(_newItemId, "path").setValue(_path);
+				messageContainer.getContainerProperty(_newItemId, "tstamp").setValue(_timeStamp);
+				messageContainer.getContainerProperty(_newItemId, "sourcesink_id").setValue(sourcesinkId);	
+				_needToSaveMessage = true;
+			}
+			//now compare latestTimestamp with the one from sourcesink 
+			if(_latestTimestamp !=null){
+				Object _connectionRowId = VaadinHelper.findRowWithValue(sourceSinkContainer, "id", sourcesinkId);
+				if(_connectionRowId != null){
+					//what to do if this one is null?assume its not null
+					if(sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp")!= null &&
+							sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp").getValue()!= null){
+						
+						Timestamp _lastTimeStampRecorded = (Timestamp)sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp").getValue();
+						if(_lastTimeStampRecorded.before(_latestTimestamp)){
+							_needToUpdateLatestTimeStamp = true;
+						}
+					}
+					else
+						_needToUpdateLatestTimeStamp = true;
+					
+					if(_needToUpdateLatestTimeStamp == true)
+						sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp").setValue(_latestTimestamp);
+				}
+			}		
+			
+			try {
+				if(_needToSaveMessage)
+					messageContainer.commit();
+				if(_needToUpdateLatestTimeStamp)
+					sourceSinkContainer.commit();
+			} 
+			catch (UnsupportedOperationException e) {} 
+			catch (SQLException e) {}
+			*/
+        }
 	}
 	
 	

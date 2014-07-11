@@ -1,10 +1,12 @@
 package edu.uq.workways.ioportlet.parcoords;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.json.JSONException;
 
 import com.vaadin.annotations.JavaScript;
@@ -17,15 +19,17 @@ import com.vaadin.ui.JavaScriptFunction;
  * @author hoangnguyen
  *
  */
-@JavaScript({"js/d3.v3.js", "js/d3.parcoords.js","js/ParCoords.js"})
-@StyleSheet("js/parcoords.css")
+@JavaScript({"js/d3/d3.v3.js", "js/d3.parcoords.js","js/ParCoords.js",
+	"js/slickgrid/jquery-1.7.min.js", "js/slickgrid/jquery.event.drag-2.0.min.js",
+	"js/slickgrid/slick.core.js", "js/slickgrid/slick.grid.js",
+	"js/slickgrid/slick.pager.js", "js/slickgrid/slick.dataview.js",
+	"js/underscore.js","js/divgrid.js"
+	})
+@StyleSheet({"js/parcoords.css", "js/grid.css", "js/style.css", "js/slickgrid/slick.grid.css", "js/slickgrid/slick-default-theme.css",
+	 "js/slickgrid/jquery-ui-1.8.16.custom.css", "js/slickgrid/examples.css", "js/slickgrid/slick.pager.css"})
 public class ParCoords extends AbstractJavaScriptComponent{
 	private static final long serialVersionUID = 1L;
 
-	/**
-	 * constructors
-	 * @param _containerId
-	 */
 	public ParCoords(String _containerId){
 		getState().containerId = _containerId;
 		this.setStyleName("parcoords");		
@@ -33,7 +37,7 @@ public class ParCoords extends AbstractJavaScriptComponent{
 		this.setId(_containerId);
 		this.addJavascriptFunctions();
 	}
-	
+
 	public ParCoords(String _containerId, List<Map<String, Object>> _data){
 		getState().containerId = _containerId;
 		getState().data = _data;
@@ -41,64 +45,50 @@ public class ParCoords extends AbstractJavaScriptComponent{
 		this.setId(_containerId);
 		this.addJavascriptFunctions();
 	}
+	
 
 	/**
 	 * add javascript functions called from javascripts
 	 */
 	private void addJavascriptFunctions(){
-		this.addFunction("setBrushValue", new JavaScriptFunction() {
+		this.addFunction("setBrushRange", new JavaScriptFunction() {
 	        private static final long serialVersionUID = 1L;
+
 			@Override
-	        public void call(JSONArray arguments) throws JSONException {
-	        	setBrushedData(arguments);
+	        public void call(JSONArray arguments)
+	                throws JSONException {
+		    	setBrushedData(arguments);
+	        }			
+	    });
+		
+		this.addFunction("onRowSelected", new JavaScriptFunction() {
+	        private static final long serialVersionUID = 1L;
+
+			@Override
+	        public void call(JSONArray arguments)
+	                throws JSONException {
+				JSONObject _selectedValue = arguments.getJSONObject(0);
+				for(ValueSelectionListener list: listeners){
+					list.valueChange(_selectedValue);
+				}
 	        }			
 	    });
 	}
+
+
 	
-	/**
-	 * setBrushedData
-	 * @param _dat
-	 */
-	public void setBrushedData(JSONArray _dat){
-		getState().brushedData = _dat;
-	}
-	
-	/**
-	 * getBrushedData
-	 * @return
-	 */
-	public JSONArray getBrushedData(){
-		return getState().brushedData;
-	}
-	
-	/**
-	 * setDimension
-	 * @param _dimentions
-	 */
-	public void setDimension(String[] _dimentions){
+	public void setDimentions(String[] _dimentions){
 		getState().dimensions = _dimentions;
 	}
 	
-	/**
-	 * setDimensionTitles
-	 * @param _dimensionTitles
-	 */
 	public void setDimensionTitles(String[] _dimensionTitles){
 		getState().dimensionTitles = _dimensionTitles;
 	}
 	
-	/**
-	 * setTypes
-	 * @param _types
-	 */
 	public void setTypes(Map<String, String> _types){
 		getState().types = _types;
 	}
 	
-	/**
-	 * setMargin
-	 * @param _margin
-	 */
 	public void setMargin(Map<String, Integer> _margin){
 		getState().margin = _margin;
 	}
@@ -121,7 +111,7 @@ public class ParCoords extends AbstractJavaScriptComponent{
 	   } else if (prop.equalsIgnoreCase("rate")) {
 	    getState().rate=(Integer)value;
 	   } else if (prop.equalsIgnoreCase("pcwidth")) {
-		getState().pcWidth=(Integer)value;
+	    getState().pcWidth=(Integer)value;
 	   } else if (prop.equalsIgnoreCase("pcheight")) {
 	    getState().pcHeight=(Integer)value;
 	   } else if (prop.equalsIgnoreCase("color")) {
@@ -134,20 +124,42 @@ public class ParCoords extends AbstractJavaScriptComponent{
 	   
 	}
 	
-	/**
-	 * add data
-	 * @param _dat
-	 */
 	public void addData(Map<String, Object> _dat){
 		getState().data.add(_dat);
 	}
 	
-	/**
-	 * get state
-	 */
 	@Override
-	protected ParCoordsState getState() {
-		return (ParCoordsState) super.getState();
+	  protected ParCoordsState getState() {
+	    return (ParCoordsState) super.getState();
+	  }
+	
+	public JSONArray getBrushedData(){
+		return getState().brushedData;
 	}
+	
+	public void setBrushedData(JSONArray _dat){
+		getState().brushedData = _dat;
+	}
+	
+	
+	public interface ValueSelectionListener extends Serializable {
+        void valueChange(JSONObject value);
+    }
+	
+	public void addValueSelectionListener(ValueSelectionListener listener) {
+        listeners.add(listener);
+    }
+	
+	public boolean isAutoscale(){
+		return this.getState().autoscale;
+	}
+	
+	public void setAutoscale(boolean _autoscale){
+		this.getState().autoscale = _autoscale;
+	}
+	/*******************************************/
+	ArrayList<ValueSelectionListener> listeners =
+            new ArrayList<ValueSelectionListener>();
+   
 	
 }

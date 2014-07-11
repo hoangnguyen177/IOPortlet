@@ -6,9 +6,11 @@ import java.util.List;
 
 
 
+
 //gson
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
+import com.vaadin.data.util.sqlcontainer.SQLContainer;
 //vaadin
 import com.vaadin.ui.AbstractLayout;
 import com.vaadin.ui.Button;
@@ -27,10 +29,9 @@ public class TextField_Inputable extends TextField implements Inputable{
 	private boolean belongToGroup = false;
 	private String groupName = "";
 	/*************************************************************/
-	public TextField_Inputable(String _id) {
-		super(_id);
+	public TextField_Inputable(String _id, String uname, SQLContainer msgContainer, SQLContainer sourceSinkContainer){
+		super(_id, uname, msgContainer, sourceSinkContainer);
 	}
-	
 	
 	@Override
 	public void addToLayout(AbstractLayout layout){

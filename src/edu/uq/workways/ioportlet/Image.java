@@ -2,19 +2,26 @@ package edu.uq.workways.ioportlet;
 //java
 import java.io.File;
 import java.io.FileOutputStream;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.gson.JsonObject;
+import com.vaadin.data.util.sqlcontainer.SQLContainer;
 //vaadin
 import com.vaadin.server.FileResource;
 import com.vaadin.server.Resource;
 import com.vaadin.server.Sizeable.Unit;
+
 import org.vaadin.tepi.imageviewer.ImageViewer;
+
 
 //workway utils
 import edu.uq.workways.commons.utils.Base64;
+import edu.uq.workways.ioportlet.IoportletUI.MessageType;
 import edu.monash.io.iolibrary.ConfigurationConsts.UpdateMode;
 /**
  * This class is to display images sent from the clients
@@ -30,11 +37,11 @@ public class Image extends DisplayObject{
 	/**
 	 * constructor(s)
 	 */
-	public Image(){
-	}
-	
-	public Image(String _id){
+	public Image(String _id, String uname, SQLContainer msgContainer, SQLContainer sourceSinkContainer){
 		this.setId(_id);
+		this.setUserName(uname);
+		this.setMessageContainer(msgContainer);
+		this.setSourceSinkId(sourceSinkContainer);
 	}
 	
 	@Override
@@ -55,32 +62,60 @@ public class Image extends DisplayObject{
 		}
 	}
 
+	
 	/**
-	 * updatemode is ignore: single image anyway
+	 * addData
 	 */
 	@Override
-	public void addData(String _data, String serieId, boolean update)
-			throws UpperLimitNumberOfSeriesException, InvalidDataException {
-		//decode the data
-		byte[] imgContents = Base64.decode(_data);
-		//now write it
-		try{
-			String tempDir = this.getTempDir();
-			File newFile = new File(tempDir + "/" + UUID.randomUUID());
-			FileOutputStream fos = new FileOutputStream(newFile);
-			fos.write(imgContents);
-			fos.close();
-			if(this.updateMode == UpdateMode.OVERWRITE){
-				resourceList.clear();
-				resourceList.add(new FileResource(newFile));
-			}
-			else if(this.updateMode == UpdateMode.APPEND){
-				resourceList.add(new FileResource(newFile));
-			}
-			if(update)
-				update();
+	public void addData(JsonObject message)	throws UpperLimitNumberOfSeriesException, InvalidDataException {
+		boolean _append = message.get("append").getAsBoolean();
+		String _path = message.get("path").getAsString();
+		boolean isRecordedMessage = false;
+		if(message.has("recorded"))
+			isRecordedMessage = message.get("recorded").getAsBoolean();
+		File newFile = null;
+		if(isRecordedMessage){
+			if(!message.has("filepath"))
+				return;
+			newFile = new File(message.get("filepath").getAsString());
 		}
-		catch(Exception e){}
+		else{
+			message.remove("data");
+			String _data = message.get("data").getAsString();
+			byte[] imgContents = Base64.decode(_data);
+			try{
+				newFile = new File(this.getStorePath() + "/" + UUID.randomUUID());
+				FileOutputStream fos = new FileOutputStream(newFile);
+				fos.write(imgContents);
+				fos.close();
+			}
+			catch(Exception e){}
+		}
+		if(newFile==null)
+			return;
+		if(this.updateMode == UpdateMode.OVERWRITE){
+			resourceList.clear();
+			resourceList.add(new FileResource(newFile));
+		}
+		else if(this.updateMode == UpdateMode.APPEND){
+			resourceList.add(new FileResource(newFile));
+		}
+		//now save the message into the database
+		if(!isRecordedMessage){
+			Long _timeStampLong = message.get("timestamp").getAsLong();
+			Timestamp _timeStamp = new Timestamp(_timeStampLong);
+			Long _sourceSinkId = message.get("sourcesinkid").getAsLong();
+			try {
+				this.saveMessage("", MessageType.source.toString(), _path, _timeStamp, _sourceSinkId, newFile.getAbsolutePath());
+			} catch (UnsupportedOperationException e) {
+				e.printStackTrace();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}			
+		}
+		//update or not
+		if(!_append)
+			update();
 		
 	}
 		
@@ -102,6 +137,5 @@ public class Image extends DisplayObject{
 			((ImageViewer)component).setImages(resourceList);
 		}
 	}
-	
 	
 }

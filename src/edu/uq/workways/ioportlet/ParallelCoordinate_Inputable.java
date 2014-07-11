@@ -2,14 +2,17 @@ package edu.uq.workways.ioportlet;
 //java
 import java.util.LinkedList;
 import java.util.List;
+
 //org json
 import org.json.JSONArray;
+
 //gson
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 //vaadin
 
+import com.vaadin.data.util.sqlcontainer.SQLContainer;
 import com.vaadin.ui.AbstractLayout;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
@@ -29,8 +32,8 @@ public class ParallelCoordinate_Inputable extends ParallelCoordinate implements 
 	private boolean belongToGroup = false;
 	private String groupName = "";
 	/*************************************************************/
-	public ParallelCoordinate_Inputable(String _id) {
-		super(_id);
+	public ParallelCoordinate_Inputable(String _id, String uname, SQLContainer msgContainer, SQLContainer sourceSinkContainer) {
+		super(_id, uname, msgContainer, sourceSinkContainer);
 	}
 
 	/**
@@ -76,6 +79,7 @@ public class ParallelCoordinate_Inputable extends ParallelCoordinate implements 
 		if(component ==null || ((ParCoords)component).getBrushedData()==null || ((ParCoords)component).getBrushedData().length()==0)
 			return null;
 		JSONArray _inputs = ((ParCoords)component).getBrushedData();
+		//parsing between two type: java json and gson
 		JsonParser parser = new JsonParser();
 		return parser.parse(_inputs.toString());
 	}

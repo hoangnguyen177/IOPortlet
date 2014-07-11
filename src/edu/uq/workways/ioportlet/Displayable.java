@@ -2,7 +2,10 @@ package edu.uq.workways.ioportlet;
 
 import java.util.Set;
 
+import com.google.gson.JsonObject;
+import com.vaadin.data.util.sqlcontainer.SQLContainer;
 import com.vaadin.ui.AbstractLayout;
+import com.vaadin.ui.UI;
 
 /**
  * interface that can display objects
@@ -52,17 +55,14 @@ public interface Displayable {
 	 * @return
 	 */
 	public String getUpdateMode();
+	
 	/**
-	 * add data: data is in string --> convert to appropriate mode
-	 * the graph needs to add to appripriate series
-	 * if update is true, update, otherwise just update data
+	 * addData
 	 * @param data
-	 * @param serieId
-	 * @param update
 	 * @throws UpperLimitNumberOfSeriesException
+	 * @throws InvalidDataException
 	 */
-	public void addData(String data, String serieId, boolean update) throws UpperLimitNumberOfSeriesException, InvalidDataException;
-
+	public void addData(JsonObject message) throws UpperLimitNumberOfSeriesException, InvalidDataException;
 	/**
 	 * 
 	 * @return
@@ -99,4 +99,57 @@ public interface Displayable {
 	 * bring the update to the GUI, called by addData when update is true
 	 */
 	public void update() throws InvalidDataException;
+	
+	/**
+	 * setMessageContainer
+	 * @param container SQLContaienr
+	 */
+	public void setMessageContainer(SQLContainer container);
+	
+	/**
+	 * getMessageContainer
+	 * @return SQLContainer
+	 */
+	public SQLContainer getMessageContainer();
+	
+	/**
+	 * setSourceSinkContainer
+	 * @param container
+	 */
+	public void setSourceSinkId(SQLContainer container);
+	
+	/**
+	 * getSourceSinkContainer
+	 * @return
+	 */
+	public SQLContainer getSourceSinkContainer();
+	
+	/**
+	 * setUserName
+	 * @param username
+	 */
+	public void setUserName(String username);
+	
+	/**
+	 * getUserName
+	 * @return
+	 */
+	public String getUserName();
+	
+	/**
+	 * get the location to store the files
+	 * @return
+	 */
+	public String getStorePath();
+	
+	/**
+	 * 
+	 * @param _ui
+	 */
+	public void setParentUI(UI _ui);
+	/**
+	 * 
+	 * @return
+	 */
+	public UI getParentUI();
 }

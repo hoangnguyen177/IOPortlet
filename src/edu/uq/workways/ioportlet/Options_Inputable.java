@@ -1,5 +1,7 @@
 package edu.uq.workways.ioportlet;
 
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -10,10 +12,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import com.vaadin.data.util.sqlcontainer.SQLContainer;
 import com.vaadin.ui.AbstractLayout;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.OptionGroup;
 import com.vaadin.ui.Button.ClickEvent;
+
+import edu.uq.workways.ioportlet.IoportletUI.MessageType;
 
 public class Options_Inputable extends DisplayObject implements Inputable {
 
@@ -24,11 +29,11 @@ public class Options_Inputable extends DisplayObject implements Inputable {
 	private JsonArray arrayData  = null;
 	private JsonArray arrayReturn = new JsonArray();
 	/***************************************************/
-	public Options_Inputable(){
-	}
-	
-	public Options_Inputable(String _id){
-		this.setId(_id);	
+	public Options_Inputable(String _id, String uname, SQLContainer msgContainer, SQLContainer sourceSinkContainer){
+		this.setId(_id);
+		this.setUserName(uname);
+		this.setMessageContainer(msgContainer);
+		this.setSourceSinkId(sourceSinkContainer);
 	}
 	
 	@Override
@@ -38,8 +43,12 @@ public class Options_Inputable extends DisplayObject implements Inputable {
 	
 	
 	@Override
-	public void addData(String _data, String serieId, boolean update)
-			throws UpperLimitNumberOfSeriesException, InvalidDataException {
+	public void addData(JsonObject message)	throws UpperLimitNumberOfSeriesException, InvalidDataException {
+		String _path = message.get("path").getAsString();
+		String _data = message.get("data").getAsString();
+		boolean isRecordedMessage = false;
+		if(message.has("recorded"))
+			isRecordedMessage = message.get("recorded").getAsBoolean();
 		JsonParser parser = new JsonParser();
 		try{
 			JsonElement _element = parser.parse(_data);
@@ -62,12 +71,23 @@ public class Options_Inputable extends DisplayObject implements Inputable {
 				}
 				((OptionGroup)component).setItemCaption(i, _caption);
 			}
+			if(!isRecordedMessage){
+				Long _timeStampLong = message.get("timestamp").getAsLong();
+				Timestamp _timeStamp = new Timestamp(_timeStampLong);
+				Long _sourceSinkId = message.get("sourcesinkid").getAsLong();
+				try {
+					this.saveMessage(message.toString(), MessageType.source.toString(), _path, _timeStamp, _sourceSinkId, "");
+				} 
+				catch (UnsupportedOperationException e) {} 
+				catch (SQLException e) {}			
+			}
 		}
 		catch(JsonSyntaxException e)
 		{
 			throw new InvalidDataException(e.getMessage());
 		}
 	}
+	
 
 	@Override
 	public Set<String> getDataSeriesIds() {

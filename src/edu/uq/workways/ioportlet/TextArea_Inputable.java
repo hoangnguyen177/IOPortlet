@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
+import com.vaadin.data.util.sqlcontainer.SQLContainer;
 import com.vaadin.ui.AbstractLayout;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.HorizontalLayout;
@@ -23,8 +24,8 @@ public class TextArea_Inputable extends TextArea implements Inputable{
 	private String groupName = "";
 	/*************************************************************/
 	
-	public TextArea_Inputable(String _id) {
-		super(_id);
+	public TextArea_Inputable(String _id, String uname, SQLContainer msgContainer, SQLContainer sourceSinkContainer) {
+		super(_id, uname, msgContainer, sourceSinkContainer);
 	}
 	
 	

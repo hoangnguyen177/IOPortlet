@@ -1,5 +1,7 @@
 package edu.uq.workways.ioportlet;
 
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -7,7 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.gson.JsonObject;
+import com.vaadin.data.util.sqlcontainer.SQLContainer;
+
 import edu.monash.io.iolibrary.ConfigurationConsts.UpdateMode;
+import edu.uq.workways.ioportlet.IoportletUI.MessageType;
 
 /**
  * gui.textfield
@@ -17,11 +23,11 @@ import edu.monash.io.iolibrary.ConfigurationConsts.UpdateMode;
  */
 public class TextField extends DisplayObject{
 
-	public TextField(){
-	}
-	
-	public TextField(String _id){
+	public TextField(String _id, String uname, SQLContainer msgContainer, SQLContainer sourceSinkContainer){
 		this.setId(_id);
+		this.setUserName(uname);
+		this.setMessageContainer(msgContainer);
+		this.setSourceSinkId(sourceSinkContainer);
 	}
 	
 	@Override
@@ -30,28 +36,46 @@ public class TextField extends DisplayObject{
 	}
 
 	@Override
-	public void addData(String _data, String serieId, boolean update)
-			throws UpperLimitNumberOfSeriesException, InvalidDataException {
-		if(data.containsKey(serieId)){
+	public void addData(JsonObject message)	throws UpperLimitNumberOfSeriesException, InvalidDataException {
+		boolean _append = message.get("append").getAsBoolean();
+		String _path = message.get("path").getAsString();
+		String _data = message.get("data").getAsString();
+		boolean isRecordedMessage = false;
+		if(message.has("recorded"))
+			isRecordedMessage = message.get("recorded").getAsBoolean();
+		if(data.containsKey(_path)){
 			if(updateMode == UpdateMode.OVERWRITE){
 				List<String> _newDataList = new LinkedList<String>();
 				_newDataList.add(_data);
-				data.get(serieId).clear();
-				data.get(serieId).addAll(_newDataList);
+				data.get(_path).clear();
+				data.get(_path).addAll(_newDataList);
 			}
 			else if(updateMode == UpdateMode.APPEND){
-				data.get(serieId).add(_data);
+				data.get(_path).add(_data);
 			}
 		}
 		else{
-			seriesOrder.add(serieId);
+			seriesOrder.add(_path);
 			List<String> _newDataList = new LinkedList<String>();
 			_newDataList.add(_data);
-			data.put(serieId, _newDataList);
+			data.put(_path, _newDataList);
 		}//end else		
-		if(update)
+		if(!isRecordedMessage){
+			Long _timeStampLong = message.get("timestamp").getAsLong();
+			Timestamp _timeStamp = new Timestamp(_timeStampLong);
+			Long _sourceSinkId = message.get("sourcesinkid").getAsLong();
+			try {
+				this.saveMessage(message.toString(), MessageType.source.toString(), _path, _timeStamp, _sourceSinkId, "");
+			} catch (UnsupportedOperationException e) {
+				e.printStackTrace();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}		
+		}
+		if(!_append)
 			update();
 	}
+	
 	
 	/**
 	 * bring the update to the users

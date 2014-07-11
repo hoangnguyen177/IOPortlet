@@ -1,0 +1,24 @@
+body, html {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+}
+#grid, #pager {
+  position: relative; #fixed;
+  width: 800px;
+  left: 4px;
+  top: 10px;
+}
+#pager {
+  #bottom: 606px;
+  height: 20px;
+}
+
+
+#grid {
+  #bottom: 0;
+  height: 150px;
+}
+

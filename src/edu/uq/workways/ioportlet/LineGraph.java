@@ -12,7 +12,13 @@ import org.dussan.vaadin.dcharts.options.Highlighter;
 import org.dussan.vaadin.dcharts.options.Options;
 import org.dussan.vaadin.dcharts.options.Series;
 
+import com.google.gson.JsonObject;
+import com.vaadin.data.util.sqlcontainer.SQLContainer;
 import com.vaadin.ui.AbstractLayout;
+
+
+
+
 
 
 //io stuff
@@ -26,6 +32,13 @@ import edu.monash.io.iolibrary.exceptions.InvalidDataTypeException;
 
 
 
+
+
+
+import edu.uq.workways.ioportlet.IoportletUI.MessageType;
+
+import java.sql.SQLException;
+import java.sql.Timestamp;
 //java
 import java.util.Map;
 import java.util.HashMap;
@@ -45,24 +58,31 @@ public class LineGraph extends DisplayObject{
 
 	/**
 	 * constructor: create a normal LineGraph
-	 */
-	public LineGraph(){
+	 */	
+	public LineGraph(String _id, String uname, SQLContainer msgContainer, SQLContainer sourceSinkContainer){
+		this.setId(_id);
+		this.setUserName(uname);
+		this.setMessageContainer(msgContainer);
+		this.setSourceSinkId(sourceSinkContainer);
 	}
 	
-	
 	@Override
-	public void addData(String _data, String serieId, boolean update)
-			throws UpperLimitNumberOfSeriesException, InvalidDataException {
-		if(data.containsKey(serieId)){
+	public void addData(JsonObject message)	throws UpperLimitNumberOfSeriesException, InvalidDataException {
+		boolean _append = message.get("append").getAsBoolean();
+		String _path = message.get("path").getAsString();//act as SerieID
+		boolean isRecordedMessage = false;
+		if(message.has("recorded"))
+			isRecordedMessage = message.get("recorded").getAsBoolean();
+		String _data = message.get("data").getAsString();
+		if(data.containsKey(_path)){
 			if(updateMode == UpdateMode.OVERWRITE){
 				List<String> _newDataList = new ArrayList<String>();
 				_newDataList.add(_data);
-				data.get(serieId).clear();
-				data.get(serieId).addAll(_newDataList);
+				data.get(_path).clear();
+				data.get(_path).addAll(_newDataList);
 			}
-			else if(updateMode == UpdateMode.APPEND){
-				data.get(serieId).add(_data);
-			}
+			else if(updateMode == UpdateMode.APPEND)
+				data.get(_path).add(_data);
 		}
 		else{
 			//all the styles
@@ -70,15 +90,29 @@ public class LineGraph extends DisplayObject{
 			//enough series, no more data
 			if(this.getNumberOfSeries() >= styles.length)
 				throw new UpperLimitNumberOfSeriesException("Can only accept:" + styles.length + " number of series. ignore now.");
-			seriesOrder.add(serieId);
+			seriesOrder.add(_path);
 			
 			List<String> _newDataList = new ArrayList<String>();
 			_newDataList.add(_data);
-			data.put(serieId, _newDataList);
-		}//end else		
-		if(update)
+			data.put(_path, _newDataList);
+		}
+		if(!isRecordedMessage){
+			Long _timeStampLong = message.get("timestamp").getAsLong();
+			Timestamp _timeStamp = new Timestamp(_timeStampLong);
+			Long _sourceSinkId = message.get("sourcesinkid").getAsLong();
+			try {
+				this.saveMessage(message.toString(), MessageType.source.toString(), _path, _timeStamp, _sourceSinkId, "");
+			} catch (UnsupportedOperationException e) {
+				e.printStackTrace();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}		
+		}
+		
+		if(!_append)
 			update();
 	}
+	
 	
 	
 	/**
