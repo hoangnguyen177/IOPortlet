@@ -26,6 +26,7 @@ import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.util.sqlcontainer.SQLContainer;
 import com.vaadin.event.MouseEvents.ClickEvent;
 import com.vaadin.event.MouseEvents.ClickListener;
+import com.vaadin.server.Sizeable.Unit;
 //vaadin
 import com.vaadin.ui.AbstractLayout;
 import com.vaadin.ui.CheckBox;
@@ -70,8 +71,6 @@ public class ParallelCoordinate  extends DisplayObject{
 
 	@Override
 	public void addToLayout(AbstractLayout layout) {
-		VerticalLayout _layout = new VerticalLayout();
-		_layout.setHeight("700px");
 		CheckBox _autoscale = new CheckBox("Autoscale");
 		_autoscale.setValue(((ParCoords)component).isAutoscale());
 		_autoscale.addValueChangeListener(new ValueChangeListener() {
@@ -82,31 +81,25 @@ public class ParallelCoordinate  extends DisplayObject{
 			  ((ParCoords)component).setAutoscale(value);
 			}
 		});
-		_layout.addComponent(_autoscale);
-		_layout.addComponent(component);
-		layout.addComponent(_layout);
+		layout.addComponent(_autoscale);
+		layout.addComponent(component);
 	}
 	
 	@Override
 	public void addData(JsonObject message) throws UpperLimitNumberOfSeriesException, InvalidDataException{
 		boolean _append = message.get("append").getAsBoolean();
 		String _path = message.get("path").getAsString();
-		String data = message.get("data").getAsString();
 		boolean isRecordedMessage = false;
 		if(message.has("recorded"))
 			isRecordedMessage = message.get("recorded").getAsBoolean();
 		JsonParser parser = new JsonParser();
 		JsonObject _data = null;
-		try{
-			JsonElement _element = parser.parse(data);
-			if(_element.isJsonObject())
-				_data = _element.getAsJsonObject();
-			else
-				throw new InvalidDataException("Invalid data:" + data);
-		}
-		catch(JsonSyntaxException e)
+		if(message.get("data").isJsonObject())
+			_data = message.get("data").getAsJsonObject();
+		else if(message.get("data").isJsonPrimitive()) //string
 		{
-			throw new InvalidDataException(e.getMessage());
+			JsonParser _parser = new JsonParser();
+			_data = _parser.parse(message.get("data").getAsString()).getAsJsonObject();
 		}
 		Map<String, Object> _addedData = new HashMap<String, Object>();
 		Set<Map.Entry<String,JsonElement>> entries = _data.entrySet();
@@ -223,7 +216,7 @@ public class ParallelCoordinate  extends DisplayObject{
 	public void createDisplayObject() {
 		component = new ParCoords(this.id);
 		((ParCoords)component).setProperties("pcwidth", 800);
-		((ParCoords)component).setProperties("pcheight", 600);
+		((ParCoords)component).setProperties("pcheight", 500);
 		((ParCoords)component).setProperties("brushed", true);
 		((ParCoords)component).setWidth("800px");
 		((ParCoords)component).setHeight("600px");
@@ -235,7 +228,7 @@ public class ParallelCoordinate  extends DisplayObject{
 					if(idWindowMap.containsKey(_id)){
 						idWindowMap.get(_id).focus();//get the focus
 					}
-					else{
+					else if(idPathMap.containsKey(_id)){
 						ImagesDisplayWindow _imagesWindow = new ImagesDisplayWindow(_id, idPathMap.get(_id));
 						getParentUI().addWindow(_imagesWindow);
 						idWindowMap.put(_id, _imagesWindow);

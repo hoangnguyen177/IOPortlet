@@ -1,4 +1,4 @@
-com_example_testparallelcoordinates3_ParCoords = function() {
+edu_uq_workways_ioportlet_parcoords_ParCoords = function() {
 	var e = $(this.getElement());
 	var parcoorContext = e.context;
 	
@@ -148,7 +148,6 @@ com_example_testparallelcoordinates3_ParCoords = function() {
 		    	//create new window here
 		    	self.onRowSelected(d[i]);
 		    });
-		    
 		    
 		    
 	  	}
