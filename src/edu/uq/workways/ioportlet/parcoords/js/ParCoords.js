@@ -50,7 +50,7 @@ edu_uq_workways_ioportlet_parcoords_ParCoords = function() {
     });
     
     parcoords.on("brush_range", function(data){
-    	self.setBrushRange(JSON.stringify(data));
+    	self.setBrushRange(data);
     });
     
     

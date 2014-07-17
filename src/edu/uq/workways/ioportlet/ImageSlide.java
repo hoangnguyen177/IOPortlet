@@ -60,7 +60,7 @@ public class ImageSlide extends DisplayObject{
 		}
 		else{
 			String _data = message.get("data").getAsString();
-			byte[] imgContents = Base64.decode(_data);
+			byte[] imgContents = Base64.decode(message.get("data").getAsString());
 			//now write it
 			try{
 				newFile = new File(this.getStorePath() + "/" + UUID.randomUUID());

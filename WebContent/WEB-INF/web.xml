@@ -7,6 +7,26 @@
 		<param-name>productionMode</param-name>
 		<param-value>false</param-value>
 	</context-param>
+	<!-- 
+	<context-param>
+			<param-name>heartbeatInterval</param-name>
+			<param-value>10</param-value>
+	</context-param>
+	<context-param> 
+	    <param-name>closeIdleSessions</param-name>
+	    <param-value>true</param-value>
+	</context-param>
+	 -->
+	<session-config>
+	    <session-timeout>1</session-timeout>
+	</session-config>
+
+	<context-param>
+	  <param-name>disable-xsrf-protection</param-name>
+	  <param-value>true</param-value>
+	</context-param>
+
+		
 	<servlet>
 		<servlet-name>Ioportlet</servlet-name>
 		<servlet-class>com.vaadin.server.VaadinServlet</servlet-class>
@@ -22,6 +42,17 @@
 			<param-name>widgetset</param-name>
 			<param-value>edu.uq.workways.ioportlet.widgetset.IoportletWidgetset</param-value>
 		</init-param>
+	
+		<init-param>
+				<param-name>heartbeatInterval</param-name>
+				<param-value>10</param-value>
+		</init-param>
+		<init-param> 
+		    <param-name>closeIdleSessions</param-name>
+		    <param-value>true</param-value>
+		</init-param>
+	
+		
 	</servlet>
 	
 	

@@ -3,9 +3,11 @@ package edu.uq.workways.ioportlet;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -33,12 +35,17 @@ import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Notification.Type;
+import com.vaadin.ui.Window;
+import com.vaadin.ui.Window.CloseEvent;
+import com.vaadin.server.FileResource;
+import com.vaadin.server.Resource;
 
 import edu.uq.workways.commons.utils.Base64;
 import edu.uq.workways.ioportlet.IoportletUI.MessageType;
 import edu.uq.workways.ioportlet.misc.ImagesDisplayWindow;
 //pc
 import edu.uq.workways.ioportlet.parcoords.ParCoords;
+
 
 public class ParallelCoordinate  extends DisplayObject{
 	
@@ -92,24 +99,24 @@ public class ParallelCoordinate  extends DisplayObject{
 		boolean isRecordedMessage = false;
 		if(message.has("recorded"))
 			isRecordedMessage = message.get("recorded").getAsBoolean();
-		JsonParser parser = new JsonParser();
 		JsonObject _data = null;
 		if(message.get("data").isJsonObject())
 			_data = message.get("data").getAsJsonObject();
 		else if(message.get("data").isJsonPrimitive()) //string
 		{
-			JsonParser _parser = new JsonParser();
-			_data = _parser.parse(message.get("data").getAsString()).getAsJsonObject();
+			JsonParser parser = new JsonParser();
+			_data = parser.parse(message.get("data").getAsString().trim()).getAsJsonObject();
 		}
 		Map<String, Object> _addedData = new HashMap<String, Object>();
 		Set<Map.Entry<String,JsonElement>> entries = _data.entrySet();
+		JsonObject _dataToBeStored = new JsonObject();
+		//put id
+		int _id = counter++;
+		_addedData.put("id", _id);
 		for(Map.Entry<String, JsonElement> _item: entries)
 		{
 			String _key = _item.getKey();
 			JsonElement _value = _item.getValue();
-			//put id
-			int _id = counter++;
-			_addedData.put("id", _id);
 			if(_value.isJsonPrimitive()){
 				JsonPrimitive _primitiveValue = _value.getAsJsonPrimitive();
 				if(_primitiveValue.isBoolean())
@@ -117,9 +124,10 @@ public class ParallelCoordinate  extends DisplayObject{
 				else if(_primitiveValue.isString())
 					_addedData.put(_key, _primitiveValue.getAsString());
 				else if(_primitiveValue.isNumber())
-					_addedData.put(_key, _primitiveValue.getAsDouble());//DOUBLE at the moment				
+					_addedData.put(_key, _primitiveValue.getAsDouble());//DOUBLE at the moment	
+				_dataToBeStored.add(_key, _value);
 			}
-			//note that complicated objects are not get added to the par coords, since they are just primitive anyway
+			//note that complicated objects are not get added to the par coords, since they are just showing primitives anyway
 			else if(_value.isJsonObject())
 			{
 				//image1={type:image, data:asdasdasd, extension:jpeg}
@@ -133,25 +141,30 @@ public class ParallelCoordinate  extends DisplayObject{
 							_filePath = _valueObject.get("path").getAsString().trim();
 						}
 					}
-					//live messages
 					else{
-						byte[] imgContents = Base64.decode((String)_valueObject.get("data").getAsString());
+						if(_valueObject.get("data").getAsString() == null || _valueObject.get("data").getAsString().isEmpty())
+							continue;
+						byte[] imgContents = Base64.decode(_valueObject.get("data").getAsString().trim());
 						if(_valueObject.has("extension") && !_valueObject.get("extension").getAsString().isEmpty())
 							_filePath = this.getStorePath() + "/" + UUID.randomUUID() + "." + _valueObject.get("extension").getAsString();
 						else
 							_filePath = this.getStorePath() + "/" + UUID.randomUUID();
 							
 						File newFile = new File(_filePath);
-						FileOutputStream fos = null;
 						boolean _writeSuccess = false;
 						try {
-							fos = new FileOutputStream(newFile);
+							FileOutputStream fos = new FileOutputStream(newFile);
 							fos.write(imgContents);
 							fos.close();
 							_writeSuccess = true;
 						} catch (FileNotFoundException e) {
+							System.out.println("Smth wrong writing:" + _filePath + ":::" + e.getMessage());
 							_filePath = "";
 						} catch (IOException e) {
+							System.out.println("Smth wrong writing:" + _filePath+ ":::" + e.getMessage());
+							_filePath = "";
+						}catch(Exception e){
+							System.out.println("Smth wrong writing:" + _filePath+ ":::" + e.getMessage());
 							_filePath = "";
 						}
 						JsonObject _obj = new JsonObject();
@@ -164,18 +177,17 @@ public class ParallelCoordinate  extends DisplayObject{
 							}
 						}
 						//not sure whether _data overwrites so remove before adding back
-						_data.remove(_key);
-						_data.add(_key, _obj);
+						_dataToBeStored.add(_key, _obj);
 					}
-					if(_path!=null && !_path.isEmpty()){
-						if(idPathMap.containsKey(_id))
-							idPathMap.get(_id).add(_path);
+					if(_filePath!=null && !_filePath.isEmpty()){
+						if(idPathMap.containsKey(_id)){
+							idPathMap.get(_id).add(_filePath);
+						}
 						else{
 							List<String> _newList = new LinkedList<String>();
-							_newList.add(_path);
-							idPathMap.put(_id, _newList);	
-						}
-						
+							_newList.add(_filePath);
+							idPathMap.put(_id, _newList);
+						}						
 					}
 				}
 				else
@@ -187,20 +199,26 @@ public class ParallelCoordinate  extends DisplayObject{
 		}
 		if(!isRecordedMessage){
 			//now save
-			message.remove("data");
-			message.add("data", _data);
+			JsonObject _messageToStore = new JsonObject();
+			Set<Map.Entry<String, JsonElement>> _messageEntries =  message.entrySet();
+			for(Map.Entry<String, JsonElement> _messageEntry: _messageEntries){
+				if(_messageEntry.getKey()!="data"){
+					_messageToStore.add(_messageEntry.getKey(), _messageEntry.getValue());
+				}
+			}
+			_messageToStore.add("data", _dataToBeStored);
 			Long _timeStampLong = message.get("timestamp").getAsLong();
 			Timestamp _timeStamp = new Timestamp(_timeStampLong);
 			Long _sourceSinkId = message.get("sourcesinkid").getAsLong();
 			try {
-				this.saveMessage(message.toString(), MessageType.source.toString(), _path, _timeStamp, _sourceSinkId, "");
+				this.saveMessage(_messageToStore.toString(), MessageType.source.toString(), _path, _timeStamp, _sourceSinkId, "");
 			} catch (UnsupportedOperationException e) {
 				e.printStackTrace();
-			} catch (SQLException e) {
+			} 
+			catch (SQLException e) {
 				e.printStackTrace();
 			}	
 		}
-		//System.out.println("adding data:" + _addedData);
 		((ParCoords)component).addData(_addedData);
 	}
 	
@@ -224,15 +242,22 @@ public class ParallelCoordinate  extends DisplayObject{
 			@Override
 			public void valueChange(JSONObject value) {
 				try {
-					int _id = value.getInt("id");
+					final int _id = value.getInt("id");
 					if(idWindowMap.containsKey(_id)){
 						idWindowMap.get(_id).focus();//get the focus
 					}
-					else if(idPathMap.containsKey(_id)){
+					else{
 						ImagesDisplayWindow _imagesWindow = new ImagesDisplayWindow(_id, idPathMap.get(_id));
+						_imagesWindow.addCloseListener(new Window.CloseListener() {
+							@Override
+							public void windowClose(CloseEvent e) {
+								idWindowMap.remove(_id);
+							}
+						});
 						getParentUI().addWindow(_imagesWindow);
 						idWindowMap.put(_id, _imagesWindow);
 						_imagesWindow.focus();
+						
 					}
 
 				} catch (JSONException e) {}
@@ -240,5 +265,8 @@ public class ParallelCoordinate  extends DisplayObject{
 			}
 		});
 	}
+	
+	
+	
 	
 }

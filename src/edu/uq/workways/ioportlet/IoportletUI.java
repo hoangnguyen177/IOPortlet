@@ -3,16 +3,13 @@ package edu.uq.workways.ioportlet;
 //java
 import static edu.uq.workways.commons.Constants.DB_DRIVER;
 
-import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Collection;
-import java.util.Queue;
 import java.util.Set;
 import java.util.Map;
 import java.util.Iterator;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.portlet.PortletPreferences;
 import javax.servlet.annotation.WebInitParam;
@@ -66,9 +63,11 @@ import edu.uq.workways.commons.utils.DatabaseHelper;
 import edu.uq.workways.commons.utils.PropsUtil;
 import edu.uq.workways.commons.utils.VaadinHelper;
 
+import com.vaadin.server.DeploymentConfiguration;
+
 @PreserveOnRefresh
 @Widgetset("edu.uq.workways.ioportlet.widgetset.IoportletWidgetset")
-public class IoportletUI extends UI {
+public class IoportletUI extends UI{
 	private static final long serialVersionUID = 1L;
 
 	@WebServlet(value = "/*", asyncSupported = true, initParams = {
@@ -135,8 +134,6 @@ public class IoportletUI extends UI {
 	//groups of inputtables
 	private Map<String, DisplayableGroup>	displayablesGroup		= new HashMap<String, DisplayableGroup>();	
 	//message queue
-	//TODO: check here
-	//private Queue<JsonObject>				messagesToBeSaved		= new ConcurrentLinkedQueue<JsonObject>();		
 	private boolean							portletGuiInitialised	= false;
 	private JsonObject						sourceDefinition		= null;
 	
@@ -151,7 +148,7 @@ public class IoportletUI extends UI {
 		layout = new VerticalLayout();
 		layout.setMargin(true);
 		setContent(layout);
-
+		
 		statusLabel = new Label("Status..........");
 		layout.addComponent(statusLabel);
 		
@@ -192,7 +189,7 @@ public class IoportletUI extends UI {
 			timeout = 10;
 			port = 9090;
 			nsp = "/";
-			sourceId = "_G1CSFhE7OLiZuN3AABW";			
+			sourceId =  "VVWaH-D7pbGbDJd0AAC6";			
 		}
 		try {
 			initSQLContainer();
@@ -214,14 +211,20 @@ public class IoportletUI extends UI {
 		}
 		/*reconstrut IO portlet*/
 		reconstructIOPortletFromDatabase();
-		System.out.println("refhreshing ..................");
 		Refresher refresher = new Refresher();
 	    refresher.setRefreshInterval(500);
-	    //refresher.addListener(new ProcessMessageListener());
-        addExtension(refresher);
+	    addExtension(refresher);
         
 		if(sink==null)
 			this.createConnection();
+		
+		//detach listener
+		addDetachListener(new DetachListener() {
+            @Override
+            public void detach(DetachEvent event) {
+            	releaseResource();
+            }
+        });
 	}
 	
 	
@@ -304,7 +307,7 @@ public class IoportletUI extends UI {
 			UpdateMode updateMode = null;
 			messageContainer.removeAllContainerFilters();
 			//only worry about messages from source atm
-			messageContainer.addContainerFilter(new And(new Equal("path", path), new Equal("type", MessageType.source.toString())));
+			messageContainer.addContainerFilter(new And(new Equal("sourcesink_id", sourcesinkId),new Equal("path", path), new Equal("type", MessageType.source.toString())));
 			messageContainer.sort(new Object[]{"tstamp"}, new boolean[]{true});
 			
 			//get the one with the latest tstamp
@@ -391,6 +394,7 @@ public class IoportletUI extends UI {
 	 * create the connection
 	 */
 	private void createConnection(){
+		System.out.println("Creating connection");
 		statusLabel.setValue("Creating connection");
 		sink = new SinkConnection();
 		sink.setHost(host);
@@ -407,11 +411,11 @@ public class IoportletUI extends UI {
 			public void onConnectionEstablished(){
 			}
 			public void onDisconnect(){
-				try {
-					sink.disconnect();
-				} catch (ConnectionFailException e) {
-					e.printStackTrace();
-				}
+//				try {
+//					sink.disconnect();
+//				} catch (ConnectionFailException e) {
+//					e.printStackTrace();
+//				}
 			}
 			public void onAuthResponse(JsonObject authResponse){
 				boolean authResult = Boolean.parseBoolean(authResponse.get("authresult").getAsString());
@@ -462,7 +466,6 @@ public class IoportletUI extends UI {
 				
 			}
 			public void onMessage(JsonObject aMessage) throws InvalidMessageException{
-				System.out.println("new message");
 				String path = aMessage.get("path").getAsString();
 				aMessage.addProperty("sourcesinkid", sourcesinkId);
 				if(!outputs.containsKey(path)){
@@ -475,8 +478,6 @@ public class IoportletUI extends UI {
 				} catch (InvalidDataException e) {
 					e.printStackTrace();
 				}
-				//TODO: check here
-				//messagesToBeSaved.offer(aMessage);
 			}	
 			public void onSourceDisconnect(){
 				if(sink!=null && sink.isConnected()){
@@ -956,68 +957,16 @@ public class IoportletUI extends UI {
 		
 	}
 	
-	//////////////////////////////////////////////////////////////////////
-	public class ProcessMessageListener implements RefreshListener {
-        private static final long serialVersionUID = 1L;
-		@Override
-        public void refresh(Refresher source) {
-			//save 10 messages max
-			//TODO: check here
-			/*
-			Timestamp _latestTimestamp = null;
-			boolean _needToSaveMessage = false;
-			boolean _needToUpdateLatestTimeStamp = false;
-			for(int i=0; i< 10 && !messagesToBeSaved.isEmpty(); i++){
-				JsonObject _msg = messagesToBeSaved.poll();
-				String _path = _msg.get("path").getAsString();
-				Long _timeStampLong = _msg.get("timestamp").getAsLong();
-				Timestamp _timeStamp = new Timestamp(_timeStampLong);
-				if(i==0)
-					_latestTimestamp = _timeStamp;
-				if(_timeStamp.after(_latestTimestamp))
-					_latestTimestamp = _timeStamp;
-				//save this message
-				messageContainer.removeAllContainerFilters();
-				Object _newItemId = messageContainer.addItem();
-				messageContainer.getContainerProperty(_newItemId, "message").setValue(_msg.toString());
-				messageContainer.getContainerProperty(_newItemId, "type").setValue(MessageType.source.toString());
-				messageContainer.getContainerProperty(_newItemId, "path").setValue(_path);
-				messageContainer.getContainerProperty(_newItemId, "tstamp").setValue(_timeStamp);
-				messageContainer.getContainerProperty(_newItemId, "sourcesink_id").setValue(sourcesinkId);	
-				_needToSaveMessage = true;
-			}
-			//now compare latestTimestamp with the one from sourcesink 
-			if(_latestTimestamp !=null){
-				Object _connectionRowId = VaadinHelper.findRowWithValue(sourceSinkContainer, "id", sourcesinkId);
-				if(_connectionRowId != null){
-					//what to do if this one is null?assume its not null
-					if(sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp")!= null &&
-							sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp").getValue()!= null){
-						
-						Timestamp _lastTimeStampRecorded = (Timestamp)sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp").getValue();
-						if(_lastTimeStampRecorded.before(_latestTimestamp)){
-							_needToUpdateLatestTimeStamp = true;
-						}
-					}
-					else
-						_needToUpdateLatestTimeStamp = true;
-					
-					if(_needToUpdateLatestTimeStamp == true)
-						sourceSinkContainer.getContainerProperty(_connectionRowId, "lastmessagestamp").setValue(_latestTimestamp);
-				}
-			}		
-			
-			try {
-				if(_needToSaveMessage)
-					messageContainer.commit();
-				if(_needToUpdateLatestTimeStamp)
-					sourceSinkContainer.commit();
-			} 
-			catch (UnsupportedOperationException e) {} 
-			catch (SQLException e) {}
-			*/
-        }
-	}
 	
+	public void releaseResource() {
+		System.out.println("---------------detaching-----------------");
+		if(sink!= null && sink.isConnected())
+		{
+			try {
+				sink.disconnect();
+				sink = null;
+			} catch (ConnectionFailException e) {}			
+		}
+	}
 	
 }

@@ -50,9 +50,9 @@ public class ParallelCoordinate_Inputable extends ParallelCoordinate implements 
 				@Override
 				public void buttonClick(ClickEvent event) {
 					JsonElement _inputsInGson = getUserInput();
-					System.out.println("to workflow:" + _inputsInGson.toString());
 					if(_inputsInGson==null)
 						return;
+					System.out.println("New message:" + _inputsInGson.toString());
 					for(InputListener _listener: listeners){
 						_listener.onUserInput(_inputsInGson);
 					}
