@@ -25,8 +25,15 @@ import com.vaadin.ui.JavaScriptFunction;
 	"js/slickgrid/slick.pager.js", "js/slickgrid/slick.dataview.js",
 	"js/underscore.js","js/divgrid.js"
 	})
-@StyleSheet({"js/parcoords.css", "js/grid.css", "js/style.css", "js/slickgrid/slick.grid.css", "js/slickgrid/slick-default-theme.css",
-	 "js/slickgrid/jquery-ui-1.8.16.custom.css", "js/slickgrid/examples.css", "js/slickgrid/slick.pager.css"})
+@StyleSheet({
+	"theme://../parcoords/css/parcoords.css",
+	"theme://../slickgrid/css/examples.css",
+	"theme://../slickgrid/css/grid.css",
+	"theme://../slickgrid/css/jquery-ui-1.8.16.custom.css",
+	"theme://../slickgrid/css/slick-default-theme.css",
+	"theme://../slickgrid/css/slick.grid.css",	
+	"theme://../slickgrid/css/slick.pager.css"
+})
 public class ParCoords extends AbstractJavaScriptComponent{
 	private static final long serialVersionUID = 1L;
 

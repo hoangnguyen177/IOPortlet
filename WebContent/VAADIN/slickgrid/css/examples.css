@@ -1,4 +1,4 @@
-@import url('slick-default-theme.css');
+@import url('/IOPortlet/VAADIN/slickgrid/css/slick-default-theme.css');
 
 ul {
   margin-left: 0;
@@ -7,7 +7,7 @@ ul {
 }
 
 li {
-  background: url("/IOPortlet/VAADIN/images/arrow_right_spearmint.png") no-repeat center left;
+  background: url("/IOPortlet/VAADIN/slickgrid/images/arrow_right_spearmint.png") no-repeat center left;
   padding: 0 0 0 14px;
 
   list-style: none;

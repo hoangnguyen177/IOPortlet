@@ -6,19 +6,19 @@ body, html {
   font-size: 12px;
 }
 #grid, #pager {
-  position: relative; #fixed;
+  position: relative; /*fixed;*/
   width: 800px;
   left: 4px;
   top: 10px;
 }
 #pager {
-  #bottom: 606px;
+  /*bottom: 606px;*/
   height: 20px;
 }
 
 
 #grid {
-  #bottom: 0;
+  /*bottom: 0;*/
   height: 150px;
 }
 

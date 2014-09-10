@@ -133,7 +133,7 @@ public class ParallelCoordinate  extends DisplayObject{
 				//image1={type:image, data:asdasdasd, extension:jpeg}
 				JsonObject _valueObject = _value.getAsJsonObject();
 				//image
-				if( _valueObject.has("type") &&  "image".equals(_valueObject.get("type").getAsString())){
+				if( _valueObject.has("type") &&  "gui.image".equals(_valueObject.get("type").getAsString())){
 					//recoreded messages
 					String _filePath = "";
 					if(isRecordedMessage){
@@ -190,8 +190,12 @@ public class ParallelCoordinate  extends DisplayObject{
 						}						
 					}
 				}
+				//graph here
+				else if( _valueObject.has("type") &&  "graph.line".equals(_valueObject.get("type").getAsString()) ){
+					
+				}
 				else
-					Notification.show("Parallel Cooridantes only support image at the moment", Type.ERROR_MESSAGE);
+					Notification.show("Parallel Cooridantes only support gui.image and graph.line at the moment", Type.ERROR_MESSAGE);
 				
 			}
 			else
@@ -237,7 +241,7 @@ public class ParallelCoordinate  extends DisplayObject{
 		((ParCoords)component).setProperties("pcheight", 500);
 		((ParCoords)component).setProperties("brushed", true);
 		((ParCoords)component).setWidth("800px");
-		((ParCoords)component).setHeight("600px");
+		((ParCoords)component).setHeight("500px");
 		((ParCoords)component).addValueSelectionListener(new ParCoords.ValueSelectionListener() {
 			@Override
 			public void valueChange(JSONObject value) {

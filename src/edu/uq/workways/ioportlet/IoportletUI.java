@@ -189,7 +189,7 @@ public class IoportletUI extends UI{
 			timeout = 10;
 			port = 9090;
 			nsp = "/";
-			sourceId =  "VVWaH-D7pbGbDJd0AAC6";			
+			sourceId =  "WdFfEEU70Ddd8KQ_AAAA";			
 		}
 		try {
 			initSQLContainer();
@@ -522,7 +522,10 @@ public class IoportletUI extends UI{
 								"path text,"+
 								"filepath text,"+
 								"CONSTRAINT message_key PRIMARY KEY (id));";
-        DatabaseHelper.initTable(connectionPool, databaseDriver, liferayScreenName, initStatement);        
+        try{
+            DatabaseHelper.initTable(connectionPool, databaseDriver, liferayScreenName, initStatement);        
+        }
+        catch(SQLException e){}//in case the table is already there
         messageContainer 			= DatabaseHelper.initContainers(connectionPool, liferayScreenName);     
         sourceSinkContainer 			= DatabaseHelper.initContainers(connectionPool, "sourcesink");    
     }
